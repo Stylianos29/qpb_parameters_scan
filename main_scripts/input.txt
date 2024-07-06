@@ -1,6 +1,6 @@
 ############################ ENVIRONMENT VARIABLES #############################
 
-# NOTE: "multiple_runs_project" directory path is set from "setup.sh" script
+# NOTE: "multiple_runs_project" directory path is set by the "setup.sh" script
 MULTIPLE_RUNS_PROJECT_FULL_PATH="/nvme/h/cy22sg1/qpb_branches/multiple_runs_project"
 
 # Set the relative path of the main program executable TODO: Make it empty!
