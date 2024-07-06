@@ -267,7 +267,7 @@ for overall_outer_loop_varying_parameter_value in \
         # Construct substring to be printed
         label=${overall_outer_loop_varying_parameter_label}
         value=${printed_overall_outer_loop_varying_parameter_value}
-        overall_outer_loop_varying_parameter_label_with_value=${label}${value}
+       overall_outer_loop_varying_parameter_label_with_value="_${label}${value}"
     else
         # Print nothing if overall outer loop varying parameter not declared
         overall_outer_loop_varying_parameter_label_with_value=""
@@ -289,7 +289,7 @@ for overall_outer_loop_varying_parameter_value in \
             # Construct substring to be printed
             label=${outer_loop_varying_parameter_label}
             value=${printed_outer_loop_varying_parameter_value}
-            outer_loop_varying_parameter_label_with_value=${label}${value}
+            outer_loop_varying_parameter_label_with_value="_${label}${value}"
         else
             # Print nothing if outer loop varying parameter not declared
             outer_loop_varying_parameter_label_with_value=""
@@ -310,7 +310,7 @@ for overall_outer_loop_varying_parameter_value in \
             # Construct substring to be printed
             label=${inner_loop_varying_parameter_label}
             value=${printed_inner_loop_varying_parameter_value}
-            inner_loop_varying_parameter_label_with_value=${label}${value}
+            inner_loop_varying_parameter_label_with_value="_${label}${value}"
 
             # Construct the parameters file filename and full path. Use the name
             # of the template file and append another substring at the end for 
@@ -318,7 +318,7 @@ for overall_outer_loop_varying_parameter_value in \
         overall_suffix=${overall_outer_loop_varying_parameter_label_with_value}
             outer_suffix=${outer_loop_varying_parameter_label_with_value}
             inner_suffix=${inner_loop_varying_parameter_label_with_value}
-            appended_suffix="_${overall_suffix}_${outer_suffix}_${inner_suffix}"
+            appended_suffix="${overall_suffix}${outer_suffix}${inner_suffix}"
 
             file_path=$TEMPLATE_PARAMETERS_FILE_FULL_PATH
      filled_parameters_file_full_path="${file_path/.ini/${appended_suffix}.ini}"
