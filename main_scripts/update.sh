@@ -30,7 +30,7 @@ MAIN_SCRIPTS_DIRECTORY="/nvme/h/cy22sg1/qpb_branches/multiple_runs_project/main_
 cd "$MAIN_SCRIPTS_DIRECTORY" || exit
 
 # Run the setup script with updated environment variables
-./setup.sh
+./setup.sh -p $DESTINATION_PATH
 
 # Change directory back to the original destination directory
 cd "$DESTINATION_PATH" || exit
