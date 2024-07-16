@@ -427,6 +427,29 @@ check_operator_type()
 }
 
 
+calculate_kappa_value() {
+    : '
+    Function: calculate_kappa_value
+    Description: Calculates the KAPPA parameter based on the given BARE_MASS.
+    Parameters:
+    1. BARE_MASS: The bare mass value used in the calculation.
+    Returns: None (prints the KAPPA value to the console).
+
+    This function calculates the KAPPA value using the formula 0.5 / (4 + BARE_MASS)
+    with a precision of at least 16 decimal places.
+    '
+
+    local BARE_MASS="$1"
+    local KAPPA
+
+    # Use bc to perform the calculation with high precision
+    KAPPA=$(echo "scale=20; 0.5 / (4 + $BARE_MASS)" | bc)
+
+    # Print the KAPPA value to the console, trimming trailing zeros in the decimal part
+    printf "%.16f\n" "$KAPPA" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+}
+
+
 general_range_of_values_generator()
 {
 :   '
@@ -667,70 +690,3 @@ range_of_gauge_configurations_file_paths_generator()
     # Print the range of file paths
     echo "${range[@]}"
 }
-
-
-
-# range_of_gauge_configurations_file_paths_generator()
-# {
-# :   '
-#     Function: range_of_gauge_configurations_file_paths_generator
-#     Generates an array of file paths from a directory based on the order of 
-#     appearance in the directory, using a specified range of indices.
-#     Usage: range_of_gauge_configurations_file_paths_generator <directory>\
-#      <start> <end> <step>
-#     Arguments:
-#     * directory: The path to the directory containing the files.
-#     * start: The starting index (1-based) of the range.
-#     * end: The ending index (1-based) of the range.
-#     * step: The step value between indices (positive or negative).
-#     Output:
-#     An array of file paths corresponding to the specified range of indices.
-#     Notes:
-#     - The function assumes that files in the directory are sorted in the 
-#         desired order of appearance.
-#     - The function checks for valid input arguments and ensures they are within 
-#         the bounds of the number of files in the directory.
-#     - If no files or multiple files are found at a specific index, an error 
-#         message is printed and the function returns 1.
-#     '
-
-#     local directory="$1"
-#     local start="$2"
-#     local end="$3"
-#     local step="$4"
-
-#     # Check if step is zero
-#     if [ "$step" -eq 0 ]; then
-#         echo "Step cannot be zero."
-#         return 1
-#     fi
-
-#     # Get the list of files in the directory
-#     local files=("$directory"/*)
-#     local num_files=${#files[@]}
-
-#     # Check if start and end are within the bounds of the number of files
-#     if [ "$start" -lt 1 ] || [ "$start" -gt "$num_files" ] || [ "$end" -lt 1 ]\
-#      || [ "$end" -gt "$num_files" ]; then
-#         echo "Start and end indices must be within the range of the number of"\
-#         "files in the directory."
-#         return 1
-#     fi
-
-#     local range=()
-#     local index
-
-#     # Generate the range of file paths
-#     if [ "$step" -gt 0 ]; then
-#         for ((index = start - 1; index < end; index += step)); do
-#             range+=("${files[index]}")
-#         done
-#     else
-#         for ((index = start - 1; index >= end - 1; index += step)); do
-#             range+=("${files[index]}")
-#         done
-#     fi
-
-#     # Print the range of file paths
-#     echo "${range[@]}"
-# }
