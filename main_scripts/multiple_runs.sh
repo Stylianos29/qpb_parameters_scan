@@ -71,6 +71,8 @@ fi
 # The operator method is extracted automatically from current directory path
 OPERATOR_METHOD=($(extract_operator_method $MULTIPLE_RUNS_DIRECTORY_PATH))
 
+OPERATOR_TYPE=($(extract_operator_type "$OPERATOR_TYPE_FLAG"))
+
 # Category B:
 
 # TODO: Maybe the printed value of the APE iters parameter must depend on 
@@ -155,11 +157,6 @@ else
     OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=("DUMMY_VALUE")
 fi
 
-# echo "${INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES[@]}"
-# echo "${OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES[@]}"
-# echo "${OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES[@]}"
-
-
 # TEMPLATE CONSTRUCTION
 
 # Construct template's filename
@@ -197,14 +194,17 @@ read -r -a constant_parameters_list <<<\
     "$(exclude_elements_from_modifiable_parameters_list_by_index\
          ${VARYING_PARAMETERS_INDICES_LIST[@]})"
 
+# TODO: Check which if parameters are appropriate for selected operator method
+
 # Fill up the copied empty template with the values of the constant parameters
 for parameter in "${constant_parameters_list[@]}"; do
 
-    # Special case is "CONFIGURATION_LABEL" parameter; it needs to be replaced
-    # by "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" parameter
-    # if [ $parameter == "CONFIGURATION_LABEL" ]; then
-    #     parameter="GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH"
-    # fi
+    # For invert main progs parameter KAPPA is used instead of BARE_MASS
+    if [[ ($parameter == "BARE_MASS")\
+                    && ("$MULTIPLE_RUNS_DIRECTORY_PATH" == *"invert"*) ]]; then
+        parameter="KAPPA"
+        KAPPA=$(calculate_kappa_value "$BARE_MASS")
+    fi
 
     # Get the value of the value of the parameter
     parameter_value="${!parameter}"
@@ -212,7 +212,6 @@ for parameter in "${constant_parameters_list[@]}"; do
     sed -i "s@_${parameter}_@${parameter_value}@g" \
                     "$TEMPLATE_PARAMETERS_FILE_FULL_PATH"
 done
-
 
 # JOBS SUBMISSION
 
@@ -352,6 +351,19 @@ for overall_outer_loop_varying_parameter_value in \
                                              "$filled_parameters_file_full_path"
             fi
 
+            # For invert main progs, the binary solutions file full path needs
+            # to be specified as well inside the parameters file
+            if [[ "$MULTIPLE_RUNS_DIRECTORY_PATH" == *"invert"* ]]; then
+                binary_solution_file_full_path=$BINARY_SOLUTION_FILES_DIRECTORY
+                binary_solution_file_full_path+="/solx12_"
+                binary_solution_file_full_path+="${printed_constant_parameters}"
+                binary_solution_file_full_path+="${appended_suffix}.dat"
+                parameter_name="BINARY_SOLUTION_FILES_DIRECTORY"
+                parameter_value=$binary_solution_file_full_path
+                sed -i "s@_${parameter_name}_@${parameter_value}@g" \
+                                             "$filled_parameters_file_full_path"
+            fi
+
             # USER INPUT: Set SLURM sbatch options
             JOB_NAME="${appended_suffix}_${printed_constant_parameters}"
             JOB_NAME=$(echo "$JOB_NAME" | sed 's/_//g')
@@ -359,8 +371,6 @@ for overall_outer_loop_varying_parameter_value in \
             OUTPUT_FILE+="${appended_suffix}.txt"
             ERROR_FILE="${LOG_FILES_DIRECTORY}/${printed_constant_parameters}"
             ERROR_FILE+="${appended_suffix}.err"
-
-            echo $JOB_NAME
 
             # Submit job
             SBATCH_OPTIONS="--job-name=${JOB_NAME} \
