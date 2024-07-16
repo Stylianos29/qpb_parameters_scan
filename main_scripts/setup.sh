@@ -43,6 +43,10 @@
 
 # TODO: Perform parameter and unit checks
 
+# TODO: Inclusion of the BINARY_SOLUTION_FILES_DIRECTORY environment variable 
+# initialization must be conditional on whether the target director is in an 
+# invert main prog
+
 # ENVIRONMENT VARIABLES
 
 MAIN_SCRIPTS_DIRECTORY_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -57,8 +61,57 @@ do
     fi
 done
 
+
+# # Function to display usage information
+# usage() {
+#     echo "Usage: $0 -p <directory> [--path <directory>]"
+#     exit 1
+# }
+
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -p|--path)
+            if [[ -n $2 && $2 != -* ]]; then
+                DESTINATION_PATH=$2
+                shift
+            else
+                echo "Error: Argument for $1 is missing" >&2
+                usage
+            fi
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            usage
+            ;;
+        *)
+            break
+            ;;
+    esac
+    shift
+done
+
+# # Check if the directory variable is set
+# if [ -z "$directory" ]; then
+#     usage
+# fi
+
+# # Print the directory for demonstration purposes
+# echo "The provided directory is: $directory"
+
+# # Your script logic goes here, for example:
+# # if [ -d "$directory" ]; then
+# #     echo "Directory exists and is: $directory"
+# # else
+# #     echo "Directory does not exist: $directory"
+# #     exit 1
+# # fi
+
+
 # USER INPUT: Set (full or relative) path of the destination directory
-DESTINATION_PATH="/nvme/h/cy22sg1/qpb_branches/Chebyshev_modified_eigenvalues/qpb/mainprogs/overlap-Chebyshev/normality"
+# DESTINATION_PATH="/nvme/h/cy22sg1/qpb_branches/Chebyshev_modified_eigenvalues/qpb/mainprogs/overlap-Chebyshev/normality"
+
 # Check if destination directory exists. If not, exit with warning
 ERROR_MESSAGE="Destination directory does not exist. Please check again."
 check_if_directory_exists $DESTINATION_PATH $ERROR_MESSAGE
@@ -94,8 +147,7 @@ sed -i \
 "s|^\(MULTIPLE_RUNS_PROJECT_FULL_PATH=\).*|\1\"$MULTIPLE_RUNS_PROJECT_FULL_PATH\"|"\
         "input.txt"
 cp input.txt $DESTINATION_PATH
-# NOTE: 
-# Capture the output of the function into a variable
+# NOTE: A list of all the parameters and their values is inserted in the copy
 modifiable_parameters=$(print_list_of_modifiable_parameters)
 # Initialize an empty variable to hold the formatted output
 formatted_parameters=""
@@ -107,6 +159,18 @@ done <<< "$modifiable_parameters"
 insert_message "${DESTINATION_PATH}/input.txt" \
                     "# List of all modifiable parameters" \
                         $formatted_parameters
+# NOTE: 
+# Check if DESTINATION_PATH contains the substring "invert"
+if [[ ! "${DESTINATION_PATH}" == *"invert"* ]]; then
+    # Remove lines from the copied input file
+    sed -i '/^# For "invert" main progs/d' "${DESTINATION_PATH}/input.txt"
+    # Remove the line starting with "BINARY_SOLUTION_FILES_DIRECTORY="
+    # and the following empty line
+    sed -i '/^BINARY_SOLUTION_FILES_DIRECTORY=/{
+        N
+        /^.*\n$/d
+    }' "${DESTINATION_PATH}/input.txt"
+fi
 
 # 3. Empty parameters file renamed "_params.ini_"
 # Initialize empty_parameters_file_path variable
