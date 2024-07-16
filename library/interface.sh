@@ -49,8 +49,8 @@ print_list_of_modifiable_parameters()
         index and current value.
     
     Example Output:
-        1  : LATTICE_DIMENSIONS = 48 24 24 24
-        2  : CONFIG_LABEL = 002
+        1  : LATTICE_DIMENSIONS=48 24 24 24
+        2  : CONFIG_LABEL=002
     
     Notes:
         - The function uses a for loop to iterate over each element in the 
@@ -68,24 +68,22 @@ print_list_of_modifiable_parameters()
         PARAM2="value2"
         print_list_of_modifiable_parameters
         Output:
-            1  : PARAM1 = value1
-            2  : PARAM2 = value2
+            1  : PARAM1=value1
+            2  : PARAM2=value2
     '
 
     local index=0
 
     for parameter_name in "${MODIFIABLE_PARAMETERS_LIST[@]}"; do
         # "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" needs different treatment
-        if [ "$parameter_name" == "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" ];
-         then
+        if [ "$parameter_name" == "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" ]; then
             # Indirect variable expansion to get the value of the parameter
             local parameter_value
-            parameter_value=$(\
-                    extract_configuration_label_from_file "${!parameter_name}")
-           printf "%2d : CONFIGURATION_LABEL = %s\n" "$index" "$parameter_value"
+            parameter_value=$(extract_configuration_label_from_file "${!parameter_name}")
+            printf "%2d : CONFIGURATION_LABEL=%s\n" "$index" "$parameter_value"
         else
             local parameter_value="${!parameter_name}"
-          printf "%2d : %s = %s\n" "$index" "$parameter_name" "$parameter_value"
+            printf "%2d : %s=%s\n" "$index" "$parameter_name" "$parameter_value"
         fi
 
         ((index++))
@@ -135,6 +133,59 @@ extract_operator_method()
     done
 
     echo ${OPERATOR_METHODS_ARRAY[0]}
+}
+
+
+extract_operator_type()
+{
+:   '
+    Function: extract_operator_type
+    Description: Maps the values of the OPERATOR_TYPE_FLAG variable to the
+    corresponding operator type name.
+    
+    Parameters:
+    1. OPERATOR_TYPE_FLAG (string): The flag indicating the operator type.
+    
+    Output:
+        Sets the global variable OPERATOR_TYPE to "Standard" if 
+        OPERATOR_TYPE_FLAG is "Standard", "Stan", or "0". 
+        Sets OPERATOR_TYPE to "Brillouin" if OPERATOR_TYPE_FLAG is 
+        "Brillouin", "Bri", or "1". 
+
+    Usage example:
+        OPERATOR_TYPE_FLAG=0
+        extract_operator_type "$OPERATOR_TYPE_FLAG"
+        echo $OPERATOR_TYPE  # Output: Standard
+
+        OPERATOR_TYPE_FLAG=Bri
+        extract_operator_type "$OPERATOR_TYPE_FLAG"
+        echo $OPERATOR_TYPE  # Output: Brillouin
+
+    Notes:
+        - This function uses a case statement to match the values of 
+        OPERATOR_TYPE_FLAG and set the OPERATOR_TYPE accordingly.
+        - If the value of OPERATOR_TYPE_FLAG does not match any of the expected
+        values, an error message is printed, and the function returns 1.
+    '
+
+    local flag="$1"
+
+    case "$flag" in
+        "Standard" | "Stan" | "0")
+            OPERATOR_TYPE="Standard"
+            ;;
+        "Brillouin" | "Bri" | "1")
+            OPERATOR_TYPE="Brillouin"
+            ;;
+        *)
+            echo "Error: Invalid OPERATOR_TYPE_FLAG value '$flag'."
+            echo "Valid values are 'Standard', 'Stan', '0', 'Brillouin', 'Bri', '1'."
+            return 1
+            ;;
+    esac
+
+    echo $OPERATOR_TYPE
+    return 0
 }
 
 
@@ -571,109 +622,6 @@ exclude_elements_from_modifiable_parameters_list_by_index()
 }
 
 
-# validate_varying_parameter_values_array()
-# {
-# :   '
-#     Function: validate_varying_parameter_values_array
-
-#     Description:
-#     This function validates and processes an array of parameter values for a 
-#     given index. It checks if the parameter values need to be generated as a 
-#     range and then validates each value against a corresponding test function.
-
-#     Parameters:
-#     1. index: An integer (0, 1, or 2) representing the index of the parameter 
-#     in the VARYING_PARAMETERS_INDICES_LIST.
-#     2. parameter_values_array: The name of the array containing the parameter 
-#     values (e.g., INNER_LOOP_VARYING_PARAMETER_RANGE_OF_VALUES, 
-#     OUTER_LOOP_VARYING_PARAMETER_RANGE_OF_VALUES, 
-#     OVERALL_OUTER_LOOP_VARYING_PARAMETER_RANGE_OF_VALUES).
-
-#     Process:
-#     1. Extracts the parameter name using the provided index from 
-#        VARYING_PARAMETERS_INDICES_LIST.
-#     2. Checks if the parameter values array contains a range string. If yes, it 
-#        generates the range of values using the corresponding generator function 
-#        and updates the array.
-#     3. Validates each element in the parameter values array using the 
-#        corresponding test function. If any element is invalid, it prints an 
-#        error message and exits.
-#     4. If the parameter values array does not contain a range string, it checks
-#        for duplicates.
-
-#     Example Usage:
-#     validate_varying_parameter_values_array 0 \
-#                         INNER_LOOP_VARYING_PARAMETER_RANGE_OF_VALUES
-#     validate_varying_parameter_values_array 1 \
-#                         OUTER_LOOP_VARYING_PARAMETER_RANGE_OF_VALUES
-#     validate_varying_parameter_values_array 2 \
-#                         OVERALL_OUTER_LOOP_VARYING_PARAMETER_RANGE_OF_VALUES
-
-#     Notes:
-#     - The function uses nameref (name reference) to refer to the array passed as 
-#       the second argument.
-#     - It ensures that the code is not repetitive and maintains clarity and 
-#       simplicity by centralizing the validation and range generation logic.
-
-#     Error Handling:
-#     - If the step value is zero, the function prints an error message and exits.
-#     - If any element in the parameter values array is invalid, the function 
-#       prints an error message and exits.
-#     - If duplicates are found in the parameter values array, the function 
-#       prints an error message and exits.
-#     '
-
-#     local index="$1"
-#     local -n parameter_values_array="$2"
-
-#     local varying_parameter_index=${VARYING_PARAMETERS_INDICES_LIST[$index]}
-#   local parameter_name="${MODIFIABLE_PARAMETERS_LIST[$varying_parameter_index]}"
-
-#     # Check if a range of values was requested. If indeed, then generate range
-#     # and assign it back to the varying parameter values array
-#     if is_range_string "${parameter_values_array[*]}"; then
-#         local range_of_values_function=\
-# "${MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY[$parameter_name]}"
-
-#         local parameter_range_of_values_string=$(\
-#             parameter_range_of_values_generator "$range_of_values_function"\
-#                                                  "${parameter_values_array[*]}")
-#         read -r -d '' -a parameter_values_array \
-#                         < <(printf '%s\0' "$parameter_range_of_values_string")
-#     else
-#         # Check for duplicates in the parameter values array
-#         local duplicates_found=0
-#         local seen=()
-#         for element in "${parameter_values_array[@]}"; do
-#             if [[ " ${seen[*]} " == *" $element "* ]]; then
-#                 duplicates_found=1
-#                 break
-#             fi
-#             seen+=("$element")
-#         done
-        
-#         if [ $duplicates_found -ne 0 ]; then
-#             echo "Error. '${parameter_values_array[*]}' array contains"\
-#                             "duplicate elements."
-#             echo "Exiting..."
-#             exit 1
-#         fi
-#     fi
-
-#     # Check validity of each element of the varying parameter values array
-#     local test_function="\
-#         ${MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY[$parameter_name]}"
-#     for element in "${parameter_values_array[@]}"; do
-#         if [ $($test_function "$element") -ne 0 ]; then
-#             echo "Error. '${parameter_values_array[*]}' array contains invalid"\
-#                         "elements with respect to the chosen varying parameter."
-#             echo "Exiting..."
-#             exit 1
-#         fi
-#     done
-# }
-
-
 validate_varying_parameter_values_array()
 {
 :   '
@@ -732,9 +680,11 @@ validate_varying_parameter_values_array()
     local varying_parameter_index=${VARYING_PARAMETERS_INDICES_LIST[$index]}
   local parameter_name="${MODIFIABLE_PARAMETERS_LIST[$varying_parameter_index]}"
 
-    # Check if a range of values was requested. If indeed, then generate range
-    # and assign it back to the varying parameter values array
+    # Check if a range of values was requested.
     if is_range_string "${parameter_values_array[*]}"; then
+        # If indeed, then generate range and assign it back to the varying
+        # parameter values array
+        # TODO: I need to find a way to handle error
         local range_of_values_function=\
 "${MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY[$parameter_name]}"
 
@@ -777,4 +727,3 @@ validate_varying_parameter_values_array()
         done
     fi
 }
-
