@@ -25,5 +25,5 @@ mpi_geometry=$2
 parameters_file=$3
 number_of_tasks=$4
 
-mpirun -n ${number_of_tasks} --map-by core --bind-to core --report-bindings \
+mpirun -n ${number_of_tasks} --map-by ppr:8:socket --bind-to core --report-bindings \
                             ${binary} geom=${mpi_geometry} ${parameters_file}
