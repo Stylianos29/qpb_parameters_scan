@@ -12,14 +12,16 @@ if [[ -f "$INPUT_FILE_PATH" ]]; then
     # If it exists, then source the input file to load its contents
     source "$INPUT_FILE_PATH"
 else
-    # Exit with error if it input file is not found
+    # Exit with error if the input file is not found
     echo "Input file not found: $INPUT_FILE_PATH"
+    echo "Exiting..."
     exit 1
 fi
 
 # Check validity of the "multiple_runs_project" directory path from input file
 if [ ! -d "$MULTIPLE_RUNS_PROJECT_FULL_PATH" ]; then
     echo "Invalid 'multiple_runs_project' directory path."
+    echo "Exiting..."
     exit 1
 fi
 
@@ -35,18 +37,18 @@ done
 # Extract the full path of the current "multiple_runs.sh" script
 MULTIPLE_RUNS_DIRECTORY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Construct full path of the main program executable given its relative path.
-# Command "realpath" resolves symbolic links containing ".." and "." components
+# Construct full path of main program executable given its relative path from 
+# input file. Command "realpath" resolves symbolic links containing ".." and "."
 BINARY=$(realpath "${MULTIPLE_RUNS_DIRECTORY_PATH}/${BINARY}")
 check_if_file_exists $BINARY "Invalid binary executable path."
 
-# Similarly construct and resolve the full path of the empty parameters file
+# Similarly construct and resolve full path of the empty parameters file
 EMPTY_PARAMETERS_FILE_FULL_PATH=$(realpath \
         "${MULTIPLE_RUNS_DIRECTORY_PATH}/${EMPTY_PARAMETERS_FILE_FULL_PATH}")
 check_if_file_exists $EMPTY_PARAMETERS_FILE_FULL_PATH \
                                         "Invalid empty parameters file path."
 
-# The same with the full path of the directory the log files will be stored
+# Resolve and construct full path of storing directory for generated log files
 LOG_FILES_DIRECTORY=$(realpath \
                     "${MULTIPLE_RUNS_DIRECTORY_PATH}/${LOG_FILES_DIRECTORY}")
 # If the log files directory does not exist, then it must be created
@@ -55,7 +57,7 @@ if [ ! -d "$LOG_FILES_DIRECTORY" ]; then
     mkdir -p "$LOG_FILES_DIRECTORY"
 fi
 
-# And the same with the full path of the parameters files directory
+# Resolve and construct full path of the generated parameters files directory
 PARAMETERS_FILES_DIRECTORY=$(realpath \
                 "${MULTIPLE_RUNS_DIRECTORY_PATH}/${PARAMETERS_FILES_DIRECTORY}")
 # If the parameters files directory does not exist, then it must be created
