@@ -1,11 +1,25 @@
 #!/bin/bash
 
 
-# TODO: I need to construct a log file
+######################################################################
+# main_scripts/multiple_runs.sh
+#
+# This is the main script of the project; 
+# * It begins with comprehensive check of all the passed paths from input.txt
+# * It will create a log file
+# * Convention: capital letters indicate 
+#
+# Author: Stylianos Gregoriou Date last modified: 7th Oct 2024
+#
+# Usage: 
+#
+######################################################################
+
 
 # ENVIRONMENT VARIABLES
 
-INPUT_FILE_PATH="./input.txt"
+# NOTE: input.txt is placed in the script's directory by setup.sh
+INPUT_FILE_PATH="./input.txt" 
 
 # Check if the input file exists
 if [[ -f "$INPUT_FILE_PATH" ]]; then
@@ -13,7 +27,7 @@ if [[ -f "$INPUT_FILE_PATH" ]]; then
     source "$INPUT_FILE_PATH"
 else
     # Exit with error if the input file is not found
-    echo "Input file not found: $INPUT_FILE_PATH"
+    echo "Input file $INPUT_FILE_PATH not found."
     echo "Exiting..."
     exit 1
 fi
@@ -25,55 +39,69 @@ if [ ! -d "$MULTIPLE_RUNS_PROJECT_FULL_PATH" ]; then
     exit 1
 fi
 
-# Source all custom functions scripts from "multiple_runs_project/library".
-# The loop is used to avoid specifying any script by name and possible typos
+# Source all custom functions scripts from "multiple_runs_project/library" using
+# a loop avoiding this way name-specific sourcing and thus potential typos
 for custom_functions_script in "$MULTIPLE_RUNS_PROJECT_FULL_PATH/library"/*.sh;
 do
     if [ -f "$custom_functions_script" ]; then
         source "$custom_functions_script"
     fi
 done
+# And now all the custom functions can be used...
 
-# Extract the full path of the current "multiple_runs.sh" script
-MULTIPLE_RUNS_DIRECTORY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Check validity of current script's log file directory path; exit if not valid
+check_if_directory_exists $MULTIPLE_RUNS_SCRIPT_LOG_FILE_DIRECTORY \
+                            "Invalid current script's log file directory path."
+# Construct then path of log file. By default its name matches script's name
+multiple_runs_script_log_file_path="${MULTIPLE_RUNS_SCRIPT_LOG_FILE_DIRECTORY}"
+multiple_runs_script_log_file_path+=$(basename "$0" .sh)"_log.txt"
 
-# Construct full path of main program executable given its relative path from 
-# input file. Command "realpath" resolves symbolic links containing ".." and "."
-BINARY=$(realpath "${MULTIPLE_RUNS_DIRECTORY_PATH}/${BINARY}")
 check_if_file_exists $BINARY "Invalid binary executable path."
-
-# Similarly construct and resolve full path of the empty parameters file
-EMPTY_PARAMETERS_FILE_FULL_PATH=$(realpath \
-        "${MULTIPLE_RUNS_DIRECTORY_PATH}/${EMPTY_PARAMETERS_FILE_FULL_PATH}")
-check_if_file_exists $EMPTY_PARAMETERS_FILE_FULL_PATH \
+check_if_file_exists $EMPTY_PARAMETERS_FILE_PATH \
                                         "Invalid empty parameters file path."
 
-# Resolve and construct full path of storing directory for generated log files
-LOG_FILES_DIRECTORY=$(realpath \
-                    "${MULTIPLE_RUNS_DIRECTORY_PATH}/${LOG_FILES_DIRECTORY}")
-# If the log files directory does not exist, then it must be created
+# Check if the parent directory of the log files directory exists
+check_if_directory_exists $(dirname $LOG_FILES_DIRECTORY) \
+                    "Parent directory of log files directory does not exist."
+# Create log files directory if it doesn't already exist
 if [ ! -d "$LOG_FILES_DIRECTORY" ]; then
     echo "Log files directory created."
     mkdir -p "$LOG_FILES_DIRECTORY"
 fi
 
-# Resolve and construct full path of the generated parameters files directory
-PARAMETERS_FILES_DIRECTORY=$(realpath \
-                "${MULTIPLE_RUNS_DIRECTORY_PATH}/${PARAMETERS_FILES_DIRECTORY}")
-# If the parameters files directory does not exist, then it must be created
+# Check if the parent directory of the parameters files directory exists
+check_if_directory_exists $(dirname $PARAMETERS_FILES_DIRECTORY) \
+                "Parent directory of parameters files directory does not exist."
+# Create parameters files directory if it doesn't already exist
 if [ ! -d "$PARAMETERS_FILES_DIRECTORY" ]; then
     echo "Parameters files directory created."
     mkdir -p "$PARAMETERS_FILES_DIRECTORY"
 fi
+
+check_if_directory_exists $GAUGE_LINKS_CONFIGURATIONS_DIRECTORY \
+                                "Invalid gauge links configurations directory."
+
+# Extract full path of current script's directory for later use
+multiple_runs_script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check if current script's directory path contains the substring "invert"
+if [[ "${multiple_runs_script_directory}" == *"invert"* ]]; then
+    # If it does then there's also a "BINARY_SOLUTION_FILES_DIRECTORY" variable
+    check_if_directory_exists $BINARY_SOLUTION_FILES_DIRECTORY \
+                                "Invalid binary solution files directory."
+fi
+
 
 # PARAMETERS SPECIFICATION
 
 # Category A:
 
 # The operator method is extracted automatically from current directory path
-OPERATOR_METHOD=($(extract_operator_method $MULTIPLE_RUNS_DIRECTORY_PATH))
+OPERATOR_METHOD=($(extract_operator_method $multiple_runs_script_directory))
 
 OPERATOR_TYPE=($(extract_operator_type "$OPERATOR_TYPE_FLAG"))
+
+QCD_BETA_VALUE=($(extract_QCD_beta_value "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY"))
 
 # Category B:
 
@@ -159,8 +187,10 @@ else
     OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=("DUMMY_VALUE")
 fi
 
+
 # TEMPLATE CONSTRUCTION
 
+# TODO: Add a beta value option
 # Construct template's filename
 printed_constant_parameters=${OPERATOR_METHOD}_${OPERATOR_TYPE}
 for index in "${LIST_OF_PARAMETERS_INDICES_TO_BE_PRINTED[@]}"; do
@@ -203,7 +233,7 @@ for parameter in "${constant_parameters_list[@]}"; do
 
     # For invert main progs parameter KAPPA is used instead of BARE_MASS
     if [[ ($parameter == "BARE_MASS")\
-                    && ("$MULTIPLE_RUNS_DIRECTORY_PATH" == *"invert"*) ]]; then
+                    && ("$multiple_runs_script_directory" == *"invert"*) ]]; then
         parameter="KAPPA"
         KAPPA=$(calculate_kappa_value "$BARE_MASS")
     fi
@@ -214,6 +244,7 @@ for parameter in "${constant_parameters_list[@]}"; do
     sed -i "s@_${parameter}_@${parameter_value}@g" \
                     "$TEMPLATE_PARAMETERS_FILE_FULL_PATH"
 done
+
 
 # JOBS SUBMISSION
 
@@ -355,7 +386,7 @@ for overall_outer_loop_varying_parameter_value in \
 
             # For invert main progs, the binary solutions file full path needs
             # to be specified as well inside the parameters file
-            if [[ "$MULTIPLE_RUNS_DIRECTORY_PATH" == *"invert"* ]]; then
+            if [[ "$multiple_runs_script_directory" == *"invert"* ]]; then
                 binary_solution_file_full_path=$BINARY_SOLUTION_FILES_DIRECTORY
                 binary_solution_file_full_path+="/solx12_"
                 binary_solution_file_full_path+="${printed_constant_parameters}"
