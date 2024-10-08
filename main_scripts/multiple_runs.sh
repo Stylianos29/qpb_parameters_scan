@@ -32,6 +32,10 @@ else
     exit 1
 fi
 
+# Create a new empty log file, overriding an existing one. Initiate logging
+echo -e "\t\tSCRIPT EXECUTION INITIATED" > "$MULTIPLE_RUNS_SCRIPT_LOG_FILE_PATH"
+echo -e "\n\t\t** ENVIRONMENT VARIABLES **\n" >> "$MULTIPLE_RUNS_SCRIPT_LOG_FILE_PATH"
+
 # Check validity of the "multiple_runs_project" directory path from input file
 if [ ! -d "$MULTIPLE_RUNS_PROJECT_FULL_PATH" ]; then
     echo "Invalid 'multiple_runs_project' directory path."
@@ -49,16 +53,16 @@ do
 done
 # And now all the custom functions can be used...
 
-# Check validity of current script's log file directory path; exit if not valid
-check_if_directory_exists $MULTIPLE_RUNS_SCRIPT_LOG_FILE_DIRECTORY \
-                            "Invalid current script's log file directory path."
-# Construct then path of log file. By default its name matches script's name
-multiple_runs_script_log_file_path="${MULTIPLE_RUNS_SCRIPT_LOG_FILE_DIRECTORY}"
-multiple_runs_script_log_file_path+=$(basename "$0" .sh)"_log.txt"
+log "INFO" "File '"${INPUT_FILE_PATH}"' has been sourced properly."
+log "INFO" "Custom functions scripts from multiple_runs_project/library has been sourced properly as well."
 
+# NOTE: All "check_if" functions 
 check_if_file_exists $BINARY "Invalid binary executable path."
+log "INFO" "Main program's executable path is valid."
+
 check_if_file_exists $EMPTY_PARAMETERS_FILE_PATH \
                                         "Invalid empty parameters file path."
+log "INFO" "Empty parameters file path is valid."
 
 # Check if the parent directory of the log files directory exists
 check_if_directory_exists $(dirname $LOG_FILES_DIRECTORY) \
@@ -68,6 +72,7 @@ if [ ! -d "$LOG_FILES_DIRECTORY" ]; then
     echo "Log files directory created."
     mkdir -p "$LOG_FILES_DIRECTORY"
 fi
+log "INFO" "Log files directory is valid."
 
 # Check if the parent directory of the parameters files directory exists
 check_if_directory_exists $(dirname $PARAMETERS_FILES_DIRECTORY) \
@@ -77,9 +82,11 @@ if [ ! -d "$PARAMETERS_FILES_DIRECTORY" ]; then
     echo "Parameters files directory created."
     mkdir -p "$PARAMETERS_FILES_DIRECTORY"
 fi
+log "INFO" "Parameters files directory is valid."
 
 check_if_directory_exists $GAUGE_LINKS_CONFIGURATIONS_DIRECTORY \
                                 "Invalid gauge links configurations directory."
+log "INFO" "Gauge links configurations directory path is valid."
 
 # Extract full path of current script's directory for later use
 multiple_runs_script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -89,6 +96,7 @@ if [[ "${multiple_runs_script_directory}" == *"invert"* ]]; then
     # If it does then there's also a "BINARY_SOLUTION_FILES_DIRECTORY" variable
     check_if_directory_exists $BINARY_SOLUTION_FILES_DIRECTORY \
                                 "Invalid binary solution files directory."
+    log "INFO" "Binary files of invert solutions directory path is valid."
 fi
 
 
