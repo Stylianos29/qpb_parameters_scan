@@ -2,37 +2,48 @@
 
 
 ######################################################################
-# update.sh
+# update.sh - Script for updating the multiple_runs_project
 #
-# This script is designed to facilitate the update process for the
-# multiple_runs_project. It sets the necessary environment variables
-# and runs the setup script from the main scripts directory.
+# This script facilitates the update process for the multiple_runs_project
+# by executing the setup script located in the main scripts directory. 
+# It sets the necessary environment variables and prepares the environment 
+# for further processing.
 #
-# Author: Stylianos Gregoriou
-# Date last modified: 16th June 2024
+# Usage:
+#   This script is placed in the "multiple_runs_scripts" directory of the
+#   destination directory defined by the setup.sh script and should be executed
+#   whenever updates to the project setup are required.
 #
-# Usage: This script should be placed in the destination directory
-# as defined inside the setup.sh script. It should be run whenever
-# updates to the setup process are required.
+# Key Functions:
+#   - Sets the full path of the current script for use in other scripts.
+#   - Extracts the destination directory path by navigating two levels up from
+#     the "multiple_runs_scripts" directory.
+#   - Changes the working directory to the "main_scripts" directory of the
+#     multiple_runs_project.
+#   - Executes the setup script with the updated destination path, ensuring all
+#     necessary configurations are applied.
+#
+# Notes:
+#   - The script assumes that it is run from the correct context and that the
+#     required directories exist.
+#   - It will exit if it cannot change to the "main_scripts" directory or if any
+#     commands fail.
 #
 ######################################################################
 
 
-# Get the current script's directory path
-CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# NOTE: This variable storing the current script's path is used by "setup.sh"
+export CURRENT_SCRIPT_FULL_PATH=$(realpath "$0")
 
-# Navigate up one level to remove the "multiple_runs_scripts" directory
-DESTINATION_PATH="$(dirname "$CURRENT_SCRIPT_FULL_PATH")"
+# Extract the directory two levels above the "multiple_runs_scripts" directory
+DESTINATION_DIRECTORY_PATH=$(dirname "$(dirname "$CURRENT_SCRIPT_FULL_PATH")")
 
-# Change directory to the main scripts directory
-# NOTE: This line is set automatically from the setup.sh script
+# Change to the "main_scripts" directory of the "multiple_runs_project"
+# NOTE: This path is set automatically by "setup.sh"
 MAIN_SCRIPTS_DIRECTORY="/nvme/h/cy22sg1/qpb_branches/multiple_runs_project/main_scripts"
-cd "$MAIN_SCRIPTS_DIRECTORY" || exit
 
-# Run the setup script with updated environment variables
-./setup.sh -p $DESTINATION_PATH
+# Change to the "main_scripts" directory
+cd "$MAIN_SCRIPTS_DIRECTORY" || exit 1
 
-# Change directory back to the original destination directory
-cd "$DESTINATION_PATH" || exit
-
-echo "Update process complete."
+# Run the setup script with the updated destination path
+./setup.sh --path "$DESTINATION_DIRECTORY_PATH"
