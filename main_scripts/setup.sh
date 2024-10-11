@@ -85,9 +85,9 @@ if [ $sourced_scripts_count -gt 0 ]; then
 "were successfully sourced."
 else
     ERROR_MESSAGE="No custom functions scripts were sourced at all."
-    echo "ERROR: "$ERROR_MESSAGE >&2
+    echo "ERROR: "$ERROR_MESSAGE
     echo "Exiting..."
-    # log error explicitly since "log()" function couldn't be sourced
+    # Log error explicitly since "log()" function couldn't be sourced
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] : $ERROR_MESSAGE" \
                                                             >> "$LOG_FILE_PATH"
     echo -e $SCRIPT_TERMINATION_MESSAGE >> "$LOG_FILE_PATH"
@@ -164,6 +164,11 @@ ORIGINAL_FILE="multiple_runs.sh"
 check_if_file_exists $ORIGINAL_FILE \
                         "Original $ORIGINAL_FILE file cannot be located." \
                         "${SCRIPT_TERMINATION_MESSAGE}"
+# NOTE: Line "MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH=" of original
+# "multiple_runs.sh" is auto-filled
+sed -i \
+"s|^\(MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH=\).*|\1\"\
+$(dirname $MAIN_SCRIPTS_DIRECTORY_FULL_PATH)\"|" "$ORIGINAL_FILE"
 cp $ORIGINAL_FILE $MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
@@ -190,11 +195,6 @@ ORIGINAL_FILE=input.txt
 check_if_file_exists $ORIGINAL_FILE \
                         "Original $ORIGINAL_FILE file cannot be located." \
                         "${SCRIPT_TERMINATION_MESSAGE}"
-# NOTE: Line "MULTIPLE_RUNS_PROJECT_FULL_PATH=" of original "input.txt" is 
-# auto-filled
-sed -i \
-"s|^\(MULTIPLE_RUNS_PROJECT_FULL_PATH=\).*|\1\"$MULTIPLE_RUNS_PROJECT_FULL_PATH\"|"\
-        "$ORIGINAL_FILE"
 cp $ORIGINAL_FILE $MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
