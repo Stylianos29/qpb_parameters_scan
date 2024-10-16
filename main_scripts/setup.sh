@@ -58,6 +58,10 @@ LOG_FILE_PATH="$(dirname "$CURRENT_SCRIPT_FULL_PATH")/${LOG_FILE_NAME}"
 echo -e "\t\t"$(echo "$CURRENT_SCRIPT_NAME" | tr '[:lower:]' '[:upper:]') \
                 "SCRIPT EXECUTION INITIATED\n" > "$LOG_FILE_PATH"
 
+# Script termination message to be used for finalizing logging
+SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
+                    | tr '[:lower:]' '[:upper:]')" SCRIPT EXECUTION TERMINATED"
+
 # Extract full path of directory containing current script. "${BASH_SOURCE[0]}"
 # ensures the correct path is obtained even when script is sourced.
 MAIN_SCRIPTS_DIRECTORY_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -75,14 +79,10 @@ do
     fi
 done
 
-# Script termination message to be used for finalizing logging
-SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
-                    | tr '[:lower:]' '[:upper:]')" SCRIPT EXECUTION TERMINATED"
-
 # Check whether any files were sourced
 if [ $sourced_scripts_count -gt 0 ]; then
     log "INFO" "A total of $sourced_scripts_count custom functions scripts "\
-"were successfully sourced."
+"from multiple_runs_project/library were successfully sourced."
 else
     ERROR_MESSAGE="No custom functions scripts were sourced at all."
     echo "ERROR: "$ERROR_MESSAGE
@@ -203,17 +203,21 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 # NOTE: A list of all the parameters and their values is inserted in the copy
-modifiable_parameters=$(print_list_of_modifiable_parameters)
-# Initialize an empty variable to hold the formatted output
-formatted_parameters=""
-# Process each line of the captured output
-while IFS= read -r line; do
-    formatted_parameters+="#$line\n"
-done <<< "$modifiable_parameters"
-# Pass
-insert_message "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE" \
-                    "# List of all modifiable parameters" \
-                        $formatted_parameters
+# A list of non-iterable parameters
+write_list_of_parameters_to_file NON_ITERABLE_PARAMETERS_NAMES_ARRAY \
+"List of non-iterable parameters" \
+"${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+# And a list of iterable parameters based on the overlap operator method
+overlap_operator_method_label=$(extract_overlap_operator_method \
+                                                $DESTINATION_DIRECTORY_PATH)
+if [[ "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
+    overlap_operator_method_label+="_invert"
+fi
+parameters_names_array="${ITERABLE_PARAMETERS_NAMES_DICTIONARY[\
+"$overlap_operator_method_label"]}"
+write_list_of_parameters_to_file $parameters_names_array \
+"List of iterable parameters" \
+"${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 # NOTE: 
 # Check if MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH contains the substring "invert"
 if [[ ! "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
@@ -227,6 +231,11 @@ if [[ ! "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
         /^.*\n$/d
     }' "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 fi
+executable_name_guess=$(basename "$DESTINATION_DIRECTORY_PATH")
+# Use sed to append the value of executable_name_guess to the line starting with
+# "BINARY=../"
+sed -i "/^BINARY=..*/ s|$|${executable_name_guess}|" \
+                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 log "INFO" "'$ORIGINAL_FILE' text file was copied successfully."
 
 # 3. Empty parameters file renamed "_params.ini_"
@@ -238,17 +247,17 @@ ERROR_MESSAGE="Corresponding empty parameters file cannot be located."
 # Check if destination path contains "invert"
 if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
     # Destination path contains "invert"
-    if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"overlap-kl"* ]]; then
-        # Destination path contains "overlap-kl"
+    if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
+        # Destination path contains "kl"
         empty_parameters_file_path+="KL_invert_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
                         "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
-    elif [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"overlap-Chebyshev"* ]];
+    elif [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
         then
-        # Destination path contains "overlap-Chebyshev"
+        # Destination path contains "Chebyshev"
         empty_parameters_file_path+="Chebyshev_invert_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
@@ -256,8 +265,8 @@ if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
                         "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
     else
-        # Destination path does not contain neither "overlap-kl" 
-        # or "overlap-Chebyshev"
+        # Destination path does not contain neither "kl" 
+        # or "Chebyshev"
         empty_parameters_file_path+="Bare_invert_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
@@ -267,17 +276,17 @@ if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
     fi
 else
     # Destination path does not contain "invert"
-    if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"overlap-kl"* ]]; then
-        # Destination path contains "overlap-kl"
+    if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
+        # Destination path contains "kl"
         empty_parameters_file_path+="KL_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
                         "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
-    elif [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"overlap-Chebyshev"* ]];
+    elif [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
         then
-        # Destination path contains "overlap-Chebyshev"
+        # Destination path contains "Chebyshev"
         empty_parameters_file_path+="Chebyshev_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
@@ -285,8 +294,8 @@ else
                         "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
     else
-        # Destination path does not contain neither "overlap-kl" 
-        # or "overlap-Chebyshev"
+        # Destination path does not contain neither "kl" 
+        # or "Chebyshev"
         empty_parameters_file_path+="Bare_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
@@ -303,7 +312,8 @@ if [ $copy_exit_status -ne 0 ]; then
 fi
 # NOTE: Line "EMPTY_PARAMETERS_FILE_FULL_PATH=" of original "input.txt" is set 
 # by default to "./_params.ini_". Update if "_params.ini_" is moved.
-log "INFO" "Empty parameters file '$ORIGINAL_FILE' was copied successfully."
+log "INFO" "Empty parameters file '$(basename $empty_parameters_file_path)' "\
+"was copied successfully."
 
 # 4. "update.sh" script
 ORIGINAL_FILE=update.sh
