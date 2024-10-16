@@ -86,7 +86,7 @@ log()
       the script with a status code of 1.
 
     Example Usage:
-        log "INFO" "This is a log message that will be recorded in the log file."
+      log "INFO" "This is a log message that will be recorded in the log file."
 
     Notes:
     - The log file path should be defined globally as LOG_FILE_PATH before 
@@ -445,17 +445,17 @@ insert_message()
     script file to make the changes effective.
 
     Usage Example:
-        # Define the script file path
-        script_file_path="/path/to/script.sh"
-    
-        # Define the target line after which the warning message should be inserted
-        target_line="#!/bin/bash -l"
-    
-        # Define the multi-line warning message
-        WARNING_MESSAGE=$'\n#======================================================================\n# This script is auto-generated and should not be modified manually.\n# ====================================================================='
-    
-        # Call the function to append the warning message, quoting the target line
-        insert_message "$script_file_path" "$target_line" "$WARNING_MESSAGE"
+      # Define the script file path
+      script_file_path="/path/to/script.sh"
+  
+      # Define target line after which the warning message should be inserted
+      target_line="#!/bin/bash -l"
+  
+      # Define the multi-line warning message
+      WARNING_MESSAGE=$'# This script is auto-generated.\n'
+  
+      # Call the function to append the warning message, quoting the target line
+      insert_message "$script_file_path" "$target_line" "$WARNING_MESSAGE"
     
     Notes:
     - This function assumes that the target line is unique within the script 
