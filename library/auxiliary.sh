@@ -1,30 +1,181 @@
 #!/bin/bash -l
 
 
+######################################################################
+# auxiliary.sh
+#
+# Description:
+# This script is part of the "multiple_runs" project and contains a collection 
+# of custom BASH functions that are not unit-tested due to their complexity 
+# within the BASH context. These functions are primarily used to handle logging, 
+# error handling, and file/directory validation in the project.
+#
+# Purpose:
+# - This script serves as a library of auxiliary functions used by various 
+#   scripts in the "multiple_runs" project.
+# - These functions have been separated into this file for organizational 
+#   clarity, ensuring that utility functions are grouped together and easy 
+#   to locate when needed.
+# - Unlike other library scripts in the project, the functions in this script 
+#   are not unit-tested due to the challenging nature of testing such functions 
+#   in a BASH environment.
+#
+# Usage:
+# - Source this script in other BASH scripts within the "multiple_runs" project 
+#   to access the defined custom functions.
+# - Example: source /path/to/library/auxiliary.sh
+#
+# Note:
+# - For unit-tested functions, refer to other library scripts in the "library" 
+#   directory.
+######################################################################
+
+
 CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$CURRENT_SCRIPT_FULL_PATH/constants.sh"
+
+
+setup_script_usage()
+{
+:   '
+    Description: Displays usage information for the setup script and exits. 
+    This function outlines the available options and their descriptions to 
+    assist the user in running the script correctly.
+
+    Parameters: 
+    - None.
+
+    Returns:
+    - Prints the usage information.
+    - Exits the script with a status code of 1 to indicate incorrect usage 
+      or when the user explicitly requests usage information.
+
+    Example Usage:
+        # If the user runs the script without the required arguments
+        setup_script_usage
+
+    Notes:
+    - This function is designed to be called when the user runs the setup.sh 
+      script incorrectly or requests usage information with the `-u` or 
+      `--usage` flag.
+    '
+
+    echo "Usage: $0 -p <directory> [--path <directory>] [-u|--usage]"
+    echo "Options:"
+    echo "  -p, --path   Specify the destination directory"
+    echo "  -u, --usage  Display usage information"
+    
+    exit 1
+}
+
+
+log()
+{
+:   '
+    Description: This function logs messages with a specified log level to a 
+    designated log file. It wraps long messages at 80 characters for improved 
+    readability and includes a timestamp in the log entry.
+
+    Parameters:
+    - log_level (string): The severity level of the log (e.g., INFO, ERROR).
+    - message (string): The message to be logged.
+
+    Returns:
+    - Logs the message to the specified log file if the log file path is set.
+    - If the log file path is not set, it prints an error message and exits 
+      the script with a status code of 1.
+
+    Example Usage:
+        log "INFO" "This is a log message that will be recorded in the log file."
+
+    Notes:
+    - The log file path should be defined globally as LOG_FILE_PATH before 
+      calling this function.
+    - If the log file path is not set, the function will terminate the script 
+      to prevent logging failures.
+    '
+    
+    local log_level="$1"
+    local message="$2"
+
+    # Log only if the global variable of the log file path has been set properly
+    if [ ! -z "$LOG_FILE_PATH" ]; then
+        # Use fold to wrap the message at 80 characters
+        wrapped_message=$(echo -e \
+           "$(date '+%Y-%m-%d %H:%M:%S') [$log_level] : $message" | fold -sw 80)
+        echo -e "$wrapped_message" >> "$LOG_FILE_PATH"
+    else
+        # Otherwise exit with error
+        echo "No current script's log file path has been provided."
+        echo "Exiting..."
+        exit 1
+    fi
+}
+
+
+termination_output()
+{
+:   '
+    Description: This function handles error reporting and script termination 
+    procedures. It prints an error message to the console, logs the error using 
+    the log function, and appends a termination message to the log file.
+
+    Parameters:
+    - error_message (string): The error message to be displayed and logged.
+    - script_termination_message (string): The message to be appended to the 
+      log file indicating the reason for script termination.
+
+    Returns:
+    - Prints the error message to standard output.
+    - Logs the error message using the log function.
+    - Appends the script termination message to the log file specified by 
+      LOG_FILE_PATH.
+
+    Example Usage:
+        termination_output "File not found" "\n\t\tSCRIPT EXECUTION TERMINATED"
+
+    Notes:
+    - The function expects that the log file path (LOG_FILE_PATH) has been 
+      set properly before it is called.
+    - This function is designed to be called when a critical error occurs that 
+      requires stopping the script execution.
+    '
+    
+    local error_message="$1"
+    local script_termination_message="$2"
+
+    echo "Error: $error_message"
+    log "ERROR" "$error_message"
+    echo -e "$script_termination_message" >> "$LOG_FILE_PATH"
+}
 
 
 check_if_directory_exists()
 {
 :   '
-    Function: check_if_directory_exists
-    Description: Checks if a directory exists at the given path and prints an 
-    error message if it does not exist.
+    Description: Checks if a directory exists at the specified path. If the 
+    directory does not exist, it prints a user-defined error message, 
+    optionally appending a termination message, and exits the script with a 
+    status code of 1.
+
     Parameters:
-      1. directory_path (string): The full path to the directory to check.
-      2. error_message (string): The error message to print if the directory 
+    - directory_path (string): The full path to the directory to check.
+    - error_message (string): The error message to print if the directory 
       does not exist.
+    - script_termination_message (string, optional): A message to be appended 
+      to the log file upon termination. If not provided, a global variable 
+      SCRIPT_TERMINATION_MESSAGE will be used if set, or a default message 
+      will be assigned.
+
     Returns: None
-    Exits: Exits the script with status 1 if the directory does not exist.
+    Exits: Exits the script with status 1 if the directory does not exist, after 
+    logging the error.
 
-    This function checks whether a directory exists at the specified path. If 
-    the directory does not exist, it prints a user-provided error message and 
-    exits the script with a status code of 1. This is useful for ensuring that 
-    required directories are present before proceeding with further script 
-    execution.
+    This function ensures that required directories are present before 
+    proceeding with further script execution. It enhances error handling by 
+    allowing for a customizable termination message.
 
-    Usage example:
+    Usage Example:
         # Define the directory path and error message
         destination_directory="/path/to/destination_directory"
         error_message="Invalid destination directory path. Check again."
@@ -35,9 +186,21 @@ check_if_directory_exists()
 
     local directory_path="$1"
     local error_message="$2"
+    local script_termination_message="$3"
+
+    # Check if the 3rd argument was passed
+    if [ -z "$script_termination_message" ]; then
+        # If no 3rd argument, check if global variable is not empty
+        if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
+            script_termination_message="$SCRIPT_TERMINATION_MESSAGE"
+        else
+            # If global variable is empty, assign default message
+            script_termination_message="\n\t\t SCRIPT EXECUTION TERMINATED"
+        fi
+    fi
 
     if [ ! -d "$directory_path" ]; then
-        echo "$error_message"
+        termination_output "${error_message}" "${script_termination_message}"
         echo "Exiting..."
         exit 1
     fi
@@ -47,22 +210,29 @@ check_if_directory_exists()
 check_if_file_exists()
 {
 :   '
-    Function: check_if_file_exists
-    Description: Checks if a file exists at the given path and prints an error 
-    message if it does not exist.
+    Description: Checks if a file exists at the specified path. If the file 
+    does not exist, it prints a user-defined error message, optionally 
+    appending a termination message, and exits the script with a status code 
+    of 1.
+
     Parameters:
-      1. file_path (string): The full path to the file to check.
-      2. error_message (string): The error message to print if the file does 
+    - file_path (string): The full path to the file to check.
+    - error_message (string): The error message to print if the file does 
       not exist.
+    - script_termination_message (string, optional): A message to be appended 
+      to the log file upon termination. If not provided, a global variable 
+      SCRIPT_TERMINATION_MESSAGE will be used if set, or a default message 
+      will be assigned.
+
     Returns: None
-    Exits: Exits the script with status 1 if the file does not exist.
+    Exits: Exits the script with status 1 if the file does not exist, after 
+    logging the error.
 
-    This function checks whether a file exists at the specified path. If the 
-    file does not exist, it prints a user-provided error message and exits the 
-    script with a status code of 1. This is useful for ensuring that required 
-    files are present before proceeding with further script execution.
+    This function ensures that required files are present before proceeding 
+    with further script execution. It enhances error handling by allowing for 
+    a customizable termination message.
 
-    Usage example:
+    Usage Example:
         # Define the file path and error message
         empty_parameters_file="/path/to/empty_parameters_file"
         error_message="Invalid empty parameters file path. Check again."
@@ -73,70 +243,200 @@ check_if_file_exists()
 
     local file_path="$1"
     local error_message="$2"
+    local script_termination_message="$3"
 
+    # Check if the 3rd argument was passed
+    if [ -z "$script_termination_message" ]; then
+        # If no 3rd argument, check if global variable is not empty
+        if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
+            script_termination_message="$SCRIPT_TERMINATION_MESSAGE"
+        else
+            # If global variable is empty, assign default message
+            script_termination_message="\n\t\t SCRIPT EXECUTION TERMINATED"
+        fi
+    fi
+
+    # Check if the file exists
     if [ ! -f "$file_path" ]; then
-        echo "$error_message"
+        termination_output "${error_message}" "${script_termination_message}"
         echo "Exiting..."
         exit 1
     fi
 }
 
 
+print_list_of_parameters()
+{
+:   '
+    This function prints a list of parameters and their corresponding values 
+    from a given array. Optionally, it can print the list with or without 
+    indices based on the "-noindices" option.
+
+    Parameters:
+    - parameter_names_array (array): An array containing the names of parameters 
+      to be printed. This array is passed by reference.
+    - options (string, optional): An optional argument, "-noindices", that when 
+      included, suppresses printing indices and prints empty spaces instead.
+
+    Returns:
+    - This function does not return any value. It prints each parameter and its 
+      corresponding value. If "-noindices" is provided, the function prints the 
+      parameters without indices.
+
+    Usage:
+    print_list_of_parameters parameter_names_array [-noindices]
+
+    Example:
+    NON_ITERABLE_PARAMETERS_NAMES_ARRAY=("param1" "param2")
+    ITERABLE_PARAMETERS_NAMES_ARRAY=("paramA" "paramB")
+
+    # Example 1: Printing with indices
+    print_list_of_parameters NON_ITERABLE_PARAMETERS_NAMES_ARRAY
+
+    # Example 2: Printing without indices
+    print_list_of_parameters ITERABLE_PARAMETERS_NAMES_ARRAY -noindices
+
+    Sample Output:
+    0  : param1=value1
+    1  : param2=value2
+
+    With "-noindices":
+       : paramA=valueA
+       : paramB=valueB
+
+    Notes:
+    - This function uses a loop to iterate through the provided array and prints
+      each parameter along with its value.
+    - The parameter names array is passed by reference, and the parameter values 
+      are accessed using indirect variable referencing ("${!parameter_name}").
+    - If the optional "-noindices" argument is provided, the function will print 
+      empty spaces instead of indices.
+    '
+    
+    local -n parameter_names_array=$1  # Use name reference for array
+    local noindices=false
+    if [[ "$2" == "-noindices" ]]; then
+        noindices=true
+    fi
+
+    local index=0
+    for parameter_name in "${parameter_names_array[@]}"; do
+        parameter_value="${!parameter_name}"
+        if [ "$noindices" = true ]; then
+            printf "# - %s=%s\n" "$parameter_name" "$parameter_value"
+        else
+            printf "# %2d : %s=%s\n" "$index" "$parameter_name" "$parameter_value"
+        fi
+        ((index++))
+    done
+
+    echo # Add new line
+}
+
+
+write_list_of_parameters_to_file()
+{
+:   '
+    Description: Inserts the output of the print_list_of_parameters function 
+    into a specified file below a given search line. The function captures 
+    the formatted output of parameters and appends it to the file, allowing 
+    for the customization of how parameters are printed based on the provided 
+    options.
+
+    Parameters:
+    - parameter_names_array (array): An array containing the names of parameters 
+      to be printed, passed by reference.
+    - search_line (string): The line in the file below which the parameters 
+      output will be inserted.
+    - file (string): The path to the file where the parameters will be written.
+    - flag (string, optional): An optional argument that can include "-noindices". 
+      If provided, this flag suppresses printing of indices and prints empty 
+      spaces instead.
+
+    Returns: None
+    Exits: None
+
+    This function is useful for dynamically updating files with parameter values, 
+    particularly in configuration or input files. It utilizes a temporary file 
+    to avoid issues with modifying the file while reading from it.
+
+    Usage Example:
+        write_list_of_parameters_to_file NON_ITERABLE_PARAMETERS_NAMES_ARRAY 
+        "List of parameters:" "config.txt" "-noindices"
+
+    Notes:
+    - The function captures the output from the print_list_of_parameters function, 
+      which formats the parameter names and their corresponding values.
+    - A temporary file is created to store the modified content before moving it 
+      back to the original file to ensure data integrity during the update process.
+    - This function relies on the presence of the print_list_of_parameters function 
+      for generating the formatted parameter output.
+    '
+
+    local -n parameter_names_array=$1  # Array passed by reference
+    local search_line="$2"             # The line to search for in the file
+    local file="$3"                    # The file where the output will be written
+    local flag="$4"                    # The optional "-noindices" flag
+
+    # Step 1: Capture the output of the print_list_of_parameters function
+    local parameters_output=$(print_list_of_parameters "$1" "$flag")
+
+    # Step 2: Create a temporary file for the modified content
+    local tmp_file=$(mktemp)
+
+    # Step 3: Use sed to insert the parameters_output below the search_line
+    sed "/${search_line}/r /dev/stdin" "$file" > "$tmp_file" <<< "$parameters_output"
+
+    # Step 4: Move the temporary file back to the original file
+    mv "$tmp_file" "$file"
+}
+
+
 insert_message()
 {
 :   '
-    insert_message
-    
-    Function: insert_message
-    Description: This function inserts a specified warning message into a script
-     file after a specified line.
+    Description: Inserts a specified warning message into a script file after 
+    a specified line.
+
     Parameters:
-      1. script_file (string): The full path to the script file where the 
+    - script_file (string): The full path to the script file where the 
       warning message will be inserted.
-      2. target_line (string): The line after which the warning message should 
+    - target_line (string): The line after which the warning message should 
       be inserted.
-      3. warning_message (string): The warning message to be inserted into the 
+    - warning_message (string): The warning message to be inserted into the 
       script.
+
     Returns: None
-    
+
     This function reads the original script file line by line and inserts the 
-    warning message right after the line that contains the specified target 
-    line as a substring. It creates a temporary file to store the modified 
-    content and then moves this temporary file back to the original script file 
-    to make the changes effective.
-    
-    Usage example:
+    warning message immediately after the line that contains the specified 
+    target line as a substring. It creates a temporary file to store the 
+    modified content and then moves this temporary file back to the original 
+    script file to make the changes effective.
+
+    Usage Example:
         # Define the script file path
         script_file_path="/path/to/script.sh"
     
-        # Define the partial target line after which the warning message should 
-        be inserted
+        # Define the target line after which the warning message should be inserted
         target_line="#!/bin/bash -l"
     
-        # Define the multi-line warning message using the $'\n' notation
-        WARNING_MESSAGE=\
-    "#======================================================================
-    \n# This script is auto-generated and should not be modified manually.
-    \n# ====================================================================="
+        # Define the multi-line warning message
+        WARNING_MESSAGE=$'\n#======================================================================\n# This script is auto-generated and should not be modified manually.\n# ====================================================================='
     
-        # Call the function to append the warning message, quoting the target 
-        line
-        insert_message "$script_file_path" "$target_line" 
-        "$WARNING_MESSAGE"
+        # Call the function to append the warning message, quoting the target line
+        insert_message "$script_file_path" "$target_line" "$WARNING_MESSAGE"
     
-    Note:
-        This function assumes that the target line is unique within the script 
-        file. If the target line appears multiple times, the warning message 
-        will be inserted after each occurrence.
-    
-        The function uses the `shift` command to properly handle multi-line 
-        strings and spaces in the `target_line`
-        argument, ensuring that the entire `warning_message` is treated as a 
-        single argument.
-    
-        The `-e` option in `echo` enables the interpretation of backslash 
-        escapes, ensuring that the newline characters in the `warning_message` 
-        are correctly processed and printed.
+    Notes:
+    - This function assumes that the target line is unique within the script 
+      file. If the target line appears multiple times, the warning message 
+      will be inserted after each occurrence.
+    - The function uses `shift` to handle multi-line strings and spaces in the 
+      `target_line` argument, ensuring the entire `warning_message` is treated 
+      as a single argument.
+    - The `-e` option in `echo` enables interpretation of backslash escapes, 
+      ensuring that newline characters in the `warning_message` are processed 
+      correctly.
     '
 
     local script_file="$1"
@@ -150,11 +450,8 @@ insert_message()
     # Read the original script file line by line
     while IFS= read -r line; do
         # Insert the warning message right after the target line
-        # if [[ $line == "#!/bin/bash -l" ]]; then
         if [[ "$line" == *"$target_line"* ]]; then
             echo "$line" >> "$temporary_file"
-            # echo >> "$temporary_file"  # Add an empty line
-            # echo >> "$temporary_file"  # Add an empty line
             echo -e "$warning_message" >> "$temporary_file"
         else
             echo "$line" >> "$temporary_file"
@@ -163,214 +460,4 @@ insert_message()
     
     # Move the modified content back to the original script file
     mv "$temporary_file" "$script_file"
-}
-
-
-find_index()
-{
-:   '
-    Function: find_index
-    This function searches for an element in a given array and returns the 
-    index of the first occurrence of that element.
-
-    Parameters:
-    - element (string): The element to search for in the array.
-    - array (array): The array in which to search for the element. The array 
-      should be passed as individual arguments.
-
-    Returns:
-    - If the element is found, the function prints the index of the first 
-      occurrence of the element and returns 0.
-    - If the element is not found, the function prints -1 and returns 1.
-
-    Usage:
-    find_index element "${array[@]}"
-
-    Example:
-    my_array=("apple" "banana" "cherry" "date")
-    element_to_find="cherry"
-    index=$(find_index "$element_to_find" "${my_array[@]}")
-
-    if [[ $index -ne -1 ]]; then
-        echo "Element '$element_to_find' found at index $index."
-    else
-        echo "Element '$element_to_find' not found in the array."
-    fi
-
-    Notes:
-    - This function uses a loop to iterate through the array and compare each 
-      element with the target element.
-    - The function prints the index of the first match found and returns 0.
-    - If no match is found, the function prints -1 and returns 1.
-    '
-    
-    local element="$1"
-    shift
-    local array=("$@")
-
-    for i in "${!array[@]}"; do
-        if [[ "${array[$i]}" == "$element" ]]; then
-            echo "$i"
-            return 0
-        fi
-    done
-
-    echo "-1"  # Return -1 if the element is not found
-    return 1
-}
-
-
-# TODO: This function needs to be retired
-check_directory_path()
-{
-:   '
-    Function to check if a given directory path exists and is a directory
-    Usage: check_directory_path <directory_full_path>
-    Arguments: directory_full_path: The full path of the directory to check.
-    Output:
-        - Echoes 0 if the path exists and is a directory.
-        - Echoes 1 and exits the script if the path does not exist or is not
-        a directory.
-    Example:
-        check_directory_path "/path/to/directory"
-        Output:
-            - If the directory exists and is a directory, it will echo 0.
-            - If the directory does not exist or is not a directory, it will 
-            echo 1 and exit the script.
-    Notes:
-        - The function uses the `-e` test to check if the path exists.
-        - The function uses the `-d` test to check if the path is a directory.
-        - If the path does not exist or is not a directory, the function echoes
-         1 and exits with status 1.
-        - If the path exists and is a directory, the function echoes 0.
-    '
-
-    local directory_full_path="$1"
-
-    # Check if the path exists
-    if [ ! -e "$directory_full_path" ]; then
-        echo 1
-        exit 1
-    fi
-
-    # If it exists, then check if it is a directory
-    if [ ! -d "$directory_full_path" ]; then
-        echo 1
-        exit 1
-    fi
-
-    # If both checks pass, return success
-    echo 0
-}
-
-
-modify_decimal_format()
-{
-:   '
-    Function to check if a value is a decimal number and modify its format.
-    Parameters:
-        $1 - The value to be checked and modified
-    Returns:
-        Modified value with the decimal point replaced by "p" if it is a decimal
-         number, otherwise returns the original value.
-    Usage:
-        parameter_value=$(modify_decimal_format "$parameter_value")
-    Explanation:
-        - This function takes one argument and checks if it is a decimal number.
-        - A decimal number is defined as an optional minus sign, followed by 
-          one or more digits, followed optionally by a decimal point and one 
-          or more digits.
-        - If the value matches the pattern, the function replaces the decimal 
-          point with the letter "p".
-        - If the value does not match the pattern, the function returns the 
-          original value unchanged.
-    '
-
-    local value="$1"
-
-    if [[ $value =~ ^-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?$ ]]; then
-        echo "${value//./p}"
-    else
-        echo "$value"
-    fi
-}
-
-
-
-is_decimal_number()
-{
-:   '
-    Function to check if a value is a decimal number
-    Parameters:
-            $1 - The value to be checked
-        Returns:
-            0 if the value is a decimal number, 1 otherwise
-    Usage:
-        value="15.69"
-        if [ $(is_decimal_number "$value") -eq 0 ]; then
-            echo "$value is a decimal number."
-        else
-            echo "$value is not a decimal number."
-        fi
-    Explanation:
-        - This function takes one argument and checks if it is a decimal number.
-        - A decimal number is defined as an optional minus sign, followed by 
-        one or more digits,
-            followed optionally by a decimal point and one or more digits.
-        - The function uses a regular expression to match this pattern.
-        - If the value matches the pattern, the function returns 0 (True).
-        - If the value does not match the pattern, the function returns 1 
-        (False).
-    '
-
-    local value="$1"
-
-    if [[ $value =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
-        echo 0  # True
-    else
-        echo 1  # False
-    fi
-}
-
-
-trim_whitespace()
-{
-:   '
-    Function: trim_whitespace
-
-    Description:
-    Trims leading and trailing whitespace from a given string. This function 
-    is useful for cleaning up strings that may have extra spaces at the 
-    beginning or end, which can interfere with string comparisons and other 
-    operations.
-
-    Parameters:
-    1. var: The input string that needs to be trimmed of leading and trailing 
-    whitespace.
-
-    Output:
-    Prints the trimmed string without leading or trailing whitespace.
-
-    Usage:
-    trimmed_string=$(trim_whitespace "  example string  ")
-
-    Example:
-    input_string="   some text with spaces   "
-    trimmed_string=$(trim_whitespace "$input_string")
-    # trimmed_string now contains "some text with spaces"
-
-    Notes:
-    - This function uses Bash string manipulation techniques to remove 
-    whitespace.
-    - The function does not modify the original string but outputs the trimmed 
-    result.
-    '
-
-    local var="$*"
-    
-    # Remove leading and trailing whitespace
-    var="${var#"${var%%[![:space:]]*}"}"
-    var="${var%"${var##*[![:space:]]}"}"
-    
-    echo -n "$var"
 }
