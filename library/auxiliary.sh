@@ -268,23 +268,26 @@ check_if_file_exists()
 print_list_of_parameters()
 {
 :   '
-    This function prints a list of parameters and their corresponding values 
-    from a given array. Optionally, it can print the list with or without 
-    indices based on the "-noindices" option.
+    Function: print_list_of_parameters
+    Description: This function prints a list of parameters and their
+    corresponding values from a given array. Optionally, it can print the list 
+    with or without indices based on the "-noindices" option.
 
     Parameters:
-    - parameter_names_array (array): An array containing the names of parameters 
-      to be printed. This array is passed by reference.
+    - parameter_names_array_name (string): The name of the array (passed as a 
+      string) that contains the parameter names to be printed. The array name 
+      is validated before being used as a reference.
     - options (string, optional): An optional argument, "-noindices", that when 
       included, suppresses printing indices and prints empty spaces instead.
 
-    Returns:
-    - This function does not return any value. It prints each parameter and its 
-      corresponding value. If "-noindices" is provided, the function prints the 
-      parameters without indices.
+    Returns: None
+    Exits: Exits the script with status 1 if the provided array name is invalid.
+
+    This function is useful for displaying parameters and their values, with 
+    the option to format the output either with indices or without.
 
     Usage:
-    print_list_of_parameters parameter_names_array [-noindices]
+    print_list_of_parameters parameter_names_array_name [-noindices]
 
     Example:
     NON_ITERABLE_PARAMETERS_NAMES_ARRAY=("param1" "param2")
@@ -305,15 +308,24 @@ print_list_of_parameters()
        : paramB=valueB
 
     Notes:
-    - This function uses a loop to iterate through the provided array and prints
+    - The function validates that the first argument is a valid array name
+      before using it as a reference.
+    - This function uses a loop to iterate through the provided array and prints 
       each parameter along with its value.
-    - The parameter names array is passed by reference, and the parameter values 
-      are accessed using indirect variable referencing ("${!parameter_name}").
     - If the optional "-noindices" argument is provided, the function will print 
       empty spaces instead of indices.
     '
     
-    local -n parameter_names_array=$1  # Use name reference for array
+    local parameter_names_array_name=$1  # Store the first argument as a string
+    if ! declare -p "$parameter_names_array_name" &>/dev/null; then
+        echo "Error: Invalid list of parameters array name "\
+                                        "'$parameter_names_array_name'."
+        echo "Exiting..."
+        exit 1
+    fi
+    # Use name reference after validation
+    local -n parameter_names_array="$parameter_names_array_name"
+
     local noindices=false
     if [[ "$2" == "-noindices" ]]; then
         noindices=true
@@ -325,7 +337,8 @@ print_list_of_parameters()
         if [ "$noindices" = true ]; then
             printf "# - %s=%s\n" "$parameter_name" "$parameter_value"
         else
-            printf "# %2d : %s=%s\n" "$index" "$parameter_name" "$parameter_value"
+            printf "# %2d : %s=%s\n" "$index" "$parameter_name" \
+                                                            "$parameter_value"
         fi
         ((index++))
     done
@@ -337,6 +350,7 @@ print_list_of_parameters()
 write_list_of_parameters_to_file()
 {
 :   '
+    Function: write_list_of_parameters_to_file
     Description: Inserts the output of the print_list_of_parameters function 
     into a specified file below a given search line. The function captures 
     the formatted output of parameters and appends it to the file, allowing 
@@ -344,48 +358,64 @@ write_list_of_parameters_to_file()
     options.
 
     Parameters:
-    - parameter_names_array (array): An array containing the names of parameters 
-      to be printed, passed by reference.
+    - parameter_names_array_name (string): The name of the array (passed as a 
+      string) that contains the parameter names to be printed. This name is 
+      validated before being used as a reference.
     - search_line (string): The line in the file below which the parameters 
       output will be inserted.
     - file (string): The path to the file where the parameters will be written.
-    - flag (string, optional): An optional argument that can include "-noindices". 
-      If provided, this flag suppresses printing of indices and prints empty 
-      spaces instead.
+    - flag (string, optional): An optional argument that can include 
+      "-noindices". If provided, this flag suppresses printing of indices and 
+      prints empty spaces instead.
 
     Returns: None
-    Exits: None
+    Exits: Exits the script with status 1 if the provided array name is invalid.
 
-    This function is useful for dynamically updating files with parameter values, 
-    particularly in configuration or input files. It utilizes a temporary file 
-    to avoid issues with modifying the file while reading from it.
+    This function is useful for dynamically updating files. It ensures that the 
+    array name is valid before attempting to print the parameters and utilizes 
+    a temporary file to avoid issues with modifying the file while reading from 
+    it.
 
     Usage Example:
         write_list_of_parameters_to_file NON_ITERABLE_PARAMETERS_NAMES_ARRAY 
         "List of parameters:" "config.txt" "-noindices"
 
     Notes:
-    - The function captures the output from the print_list_of_parameters function, 
-      which formats the parameter names and their corresponding values.
-    - A temporary file is created to store the modified content before moving it 
-      back to the original file to ensure data integrity during the update process.
-    - This function relies on the presence of the print_list_of_parameters function 
-      for generating the formatted parameter output.
+    - The function validates that the first argument is a valid array name 
+      before using it as a reference.
+    - A temporary file is created to store the modified content before moving 
+      it back to the original file to ensure data integrity during the update 
+      process.
+    - This function relies on the print_list_of_parameters function to format 
+      the parameter names and their corresponding values.
     '
+    
+    local parameter_names_array_name=$1  # Store the first argument as a string
+    local search_line="$2"               # Line to search for in the file
+    local file="$3"                      # File where the output will be written
+    local flag="$4"                      # Optional "-noindices" flag
 
-    local -n parameter_names_array=$1  # Array passed by reference
-    local search_line="$2"             # The line to search for in the file
-    local file="$3"                    # The file where the output will be written
-    local flag="$4"                    # The optional "-noindices" flag
+    # Step 0: Validate the array name before using it as a reference
+    if ! declare -p "$parameter_names_array_name" &>/dev/null; then
+        echo "Error: Invalid list of parameters array name "\
+                                        "'$parameter_names_array_name'."
+        echo "Exiting..."
+        exit 1
+    fi
+  
+    # Use name reference after validation
+    local -n parameter_names_array="$parameter_names_array_name"  
 
     # Step 1: Capture the output of the print_list_of_parameters function
-    local parameters_output=$(print_list_of_parameters "$1" "$flag")
+    local parameters_output=$(print_list_of_parameters \
+                                          "$parameter_names_array_name" "$flag")
 
     # Step 2: Create a temporary file for the modified content
     local tmp_file=$(mktemp)
 
     # Step 3: Use sed to insert the parameters_output below the search_line
-    sed "/${search_line}/r /dev/stdin" "$file" > "$tmp_file" <<< "$parameters_output"
+    sed "/${search_line}/r /dev/stdin" "$file" > "$tmp_file" \
+                                                        <<< "$parameters_output"
 
     # Step 4: Move the temporary file back to the original file
     mv "$tmp_file" "$file"
