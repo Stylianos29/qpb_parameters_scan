@@ -1,4 +1,5 @@
 .git
 .vscode
 archive
-example/*
+examples/*
+main_scripts/setup_log.txt
