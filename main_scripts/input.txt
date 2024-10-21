@@ -1,85 +1,45 @@
 ############################ ENVIRONMENT VARIABLES #############################
 
-# NOTE: "multiple_runs_project" directory path is set by the "setup.sh" script
-MULTIPLE_RUNS_PROJECT_FULL_PATH="/nvme/h/cy22sg1/qpb_branches/multiple_runs_project"
-
-# Set the relative path of the main program executable TODO: Make it empty!
 BINARY=../
 
-# Set the relative path of the empty parameters file
-EMPTY_PARAMETERS_FILE_FULL_PATH=./_params.ini_
-
-# Set the relative path of the log files directory (existing or not)
-LOG_FILES_DIRECTORY=../log_files
-
-# Set the relative path for the parameters files directory (existing or not)
-PARAMETERS_FILES_DIRECTORY=../params_files
-
-# Set the full path of the preferred gauge links configuration files
+# Executable's input
+EMPTY_PARAMETERS_FILE_PATH=./_params.ini_
+PARAMETERS_FILES_DIRECTORY=./params_files
 GAUGE_LINKS_CONFIGURATIONS_DIRECTORY="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE"
 
-# For "invert" main progs, set full path for storing the solution binary files
+# Executable's output
+LOG_FILES_DIRECTORY=./log_files
 BINARY_SOLUTION_FILES_DIRECTORY="/nvme/h/cy22sg1/scratch/invert_solutions_files"
 
 ########################### PARAMETERS SPECIFICATION ###########################
 
-# List of all modifiable parameters parameters with their default values:
-# Category A: Parameters with values printed by default in all output filenames.
-# These are only two: operator method and operator type.
+# List of non-iterable parameters:
 
-# NOTE: Operator method is extracted automatically from current directory path.
+# List of iterable parameters:
 
-# Choose operator type by setting for convenience any of the following:
-# for "Standard" use: "Standard", "Stan", or 0
-# for "Brillouin" use: "Brillouin", "Bri", or 1
-OPERATOR_TYPE_FLAG=0
+# Non-iterable parameters
+KERNEL_OPERATOR_TYPE_FLAG=0
+LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED=(0 1)
 
-# Category B: Selected parameters to be printed in output files names
+# Varying iterable parameters
+VARYING_PARAMETERS_INDICES_LIST=(0 3)
+# Array format: (), or range format: "[start end step]"
+INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES="[1 5 1]"
+# "[0.5 0.9 0.1]"
+OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=("1.1" "1.2" "1.3")
+# "[0.5 0.9 0.1]"
+OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES="[3 8 2]"
 
-# Select the indices of parameters to be printed in the specified order. 
-# Use "()" for an empty list. The index for "OPERATOR_TYPE" is not valid.
-LIST_OF_PARAMETERS_INDICES_TO_BE_PRINTED=()
-
-# Category C: Parameters with modified values than the default ones
-
-# Set constant values of several parameters different than their 
-# default ones, irrespective whether they are to be printed or not
-# NOTE: Format "parameter=parameter_value" in a column; do not forget to use "".
-LIST_OF_UPDATED_CONSTANT_VALUES=(
+# Constant iterable parameters
+LIST_OF_UPDATED_CONSTANT_VALUES=( # Format: "parameter=parameter_value"
+    "BARE_MASS=0.1"
     )
-
-# Category D: Parameters with varying values
-
-# Choose at least 1 but no more than 3 parameters that will have their values
-# varied in a range or a predefined set of values. State their index in the 
-# array right below.
-# NOTE: The stated indices in the array correspond (schematically) to the nested
-# loops as follows: (inner loop, outer loop, overall outer loop). Thus, only the
-# inner loop range or set of values is mandatory to be specified even with a 
-# single element.
-VARYING_PARAMETERS_INDICES_LIST=()
-
-# Next select the range of values or predefined (explicit) set of values of each
-# of the nested loops. For an explicit set values use the array format. If a 
-# range of values is preferred, use then the a format: "[start end step]";
-# do not forget to use "" for the range format.
-# Inner loop values; mandatory to be filled, corresponds to 1st index
-INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=
-# Outer loop values; fill only if a 2nd index was stated; it's ignored if not
-OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=
-# Overall outer loop values, only if a 3nd index was stated, ignored if not
-OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=
+LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED=(1 2 7 6)
 
 ################################ JOBS SUBMISSION ###############################
 
-# Select partition for job. NOTE: On Cyclone the options are "p100" or "nehalem"
 PARTITION_NAME="nehalem"
-# NOTE: The product of MPI_GEOMETRY division per direction equals the total 
-# number of cores used for the job
 MPI_GEOMETRY="2,2,2"
-# NOTE: On Cyclone you can only use 1, 2, or 4 nodes
 NUMBER_OF_NODES=1
-# NOTE: On Cyclone maximum 16 for "nehalem" and 32 for "p100"
 NTASKS_PER_NODE=16
-# NOTE: If reservation short is used then walltime is set automatically to 1h
 WALLTIME="01:00:00"
