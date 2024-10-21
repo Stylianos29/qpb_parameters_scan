@@ -1,9 +1,118 @@
 #!/bin/bash
 
 
+######################################################################
+# parameters.sh
+#
+# Description:
+# This script 
+######################################################################
+
+
 # Get the directory path of the current script
 CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$CURRENT_SCRIPT_FULL_PATH/constants.sh"
+
+
+# TODO: Potential improvement: identify the common part among the configuration
+# files and define the label as the different part
+extract_configuration_label_from_file()
+{
+:   '
+    Function: extract_configuration_label_from_file
+
+    Description:
+    This function extracts the configuration label from a given gauge links 
+    configuration file full path. The configuration label is defined as the 
+    substring after the last dot (.) in the filename, typically representing 
+    a configuration identifier. If no dot is present, an error is printed.
+
+    Parameters:
+    1. file_full_path: The full path to the gauge links configuration file.
+
+    Returns:
+    The configuration label extracted from the file full path if a dot is 
+    present. If no dot is found, an error message is printed, and the 
+    function returns 1.
+
+    Example Usage:
+    file_full_path="./conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200"
+    configuration_label=$(extract_configuration_label_from_file \
+                                                            "$file_full_path")
+    echo "$configuration_label"  # Outputs: 0024200
+    '
+
+    local file_full_path="$1"
+
+    # Check if the path contains a dot
+    if [[ "$file_full_path" != *.* ]]; then
+        echo "Error: No dot found in the file path '$file_full_path'."
+        return 1
+    fi
+
+    # Extract the configuration label (substring after the last dot)
+    local configuration_label="${file_full_path##*.}"
+    
+    echo "$configuration_label"
+}
+
+
+######################################################################
+
+
+match_configuration_label_to_file()
+{
+:   '
+    Function to find a file in a specified directory that ends with a given 
+    suffix.
+    Usage: match_configuration_label_to_file <configuration_label>
+    Arguments:
+        * configuration_label: The suffix that the target file should end with.
+    Output:
+        - If exactly one file is found with the specified suffix, the function
+          prints the full path of the file.
+        - If no file or more than one file is found with the specified suffix,
+          the function prints an error message and returns 1.
+    Example:
+        file_path=$(match_configuration_label_to_file "0024200")
+        if [ $? -eq 0 ]; then
+            echo "File found: $file_path"
+        else
+            echo "An error occurred."
+        fi
+    Notes:
+        - The function uses the `find` command to search for files.
+        - The function assumes that the `find` command is available on the 
+        system.
+        - If no files or more than one file is found, the function returns 1.
+        - Ensure the search directory path (stored in
+         GAUGE_LINKS_CONFIGURATIONS_DIRECTORY) and file suffix are correctly
+          specified.
+    '
+    
+    local configuration_label="$1"
+
+    # Find files that end with the specified suffix in the global directory
+    local files=($(find "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" -type f -name \
+                                                    "*$configuration_label"))
+
+    # Check the number of files found
+    if [ ${#files[@]} -eq 0 ]; then
+        echo "Error: No configuration file ending with '$configuration_label'"\
+        "found."
+        return 1
+    elif [ ${#files[@]} -gt 1 ]; then
+        echo "Error: More than one configuration file ending with"\
+        "'$configuration_label' found:"
+        for file in "${files[@]}"; do
+            echo "$file"
+        done
+        return 1
+    else
+        echo "${files[0]}"
+    fi
+}
+
 
 
 check_lattice_dimensions()
@@ -181,11 +290,11 @@ is_float()
 :   '
     is_float() - Check if a value is a floating-point number
 
-    This function takes a single input value and checks if it is a floating-point
-    number. It uses a regular expression to determine if the value is a valid
-    floating-point number, which can be either positive or negative, and may
-    contain a decimal point. If the value is a floating-point number, the function
-    outputs "0". Otherwise, it outputs "1".
+    This function takes a single input value and checks if it is a
+    floating-point number. It uses a regular expression to determine if the 
+    value is a valid floating-point number, which can be either positive or
+    negative, and may contain a decimal point. If the value is a floating-point
+    number, the function outputs "0". Otherwise, it outputs "1".
 
     Usage:
     result=$(is_float value)
@@ -259,9 +368,11 @@ is_positive_float() {
     if [[ $(is_float "$value") -eq 0 ]]; then
         # Use awk to check if the value is greater than 0
         if echo "$value" | awk '{exit ($1 <= 0)}'; then
-            echo 0  # Output 0 (true) if the value is a positive floating-point number
+            # Output 0 (true) if value is a positive floating-point number
+            echo 0  
         else
-            echo 1  # Output 1 (false) if the value is not a positive floating-point number
+            # Output 1 (false) if value is not a positive floating-point number
+            echo 1
         fi
     else
         echo 1  # Output 1 (false) if the value is not a floating-point number
@@ -430,24 +541,49 @@ check_operator_type()
 calculate_kappa_value() {
     : '
     Function: calculate_kappa_value
-    Description: Calculates the KAPPA parameter based on the given BARE_MASS.
+    Description: Calculates the kappa_value parameter based on the given bare_mass.
     Parameters:
-    1. BARE_MASS: The bare mass value used in the calculation.
-    Returns: None (prints the KAPPA value to the console).
+    1. bare_mass: The bare mass value used in the calculation.
+    Returns: None (prints the kappa_value value to the console).
 
-    This function calculates the KAPPA value using the formula 0.5 / (4 + BARE_MASS)
+    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
     with a precision of at least 16 decimal places.
     '
 
-    local BARE_MASS="$1"
-    local KAPPA
+    local bare_mass="$1"
+    local kappa_value
 
     # Use bc to perform the calculation with high precision
-    KAPPA=$(echo "scale=20; 0.5 / (4 + $BARE_MASS)" | bc)
+    kappa_value=$(echo "scale=20; 0.5 / (4 + $bare_mass)" | bc)
 
-    # Print the KAPPA value to the console, trimming trailing zeros in the decimal part
-    printf "%.16f\n" "$KAPPA" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+    # Print the kappa_value value to the console, trimming trailing zeros in the decimal part
+    printf "%.16f\n" "$kappa_value" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
 }
+
+
+
+calculate_bare_mass_from_kappa_value() {
+    : '
+    Function: calculate_kappa_value
+    Description: Calculates the kappa_value parameter based on the given bare_mass.
+    Parameters:
+    1. bare_mass: The bare mass value used in the calculation.
+    Returns: None (prints the kappa_value value to the console).
+
+    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
+    with a precision of at least 16 decimal places.
+    '
+
+    local kappa_value="$1"
+    local bare_mass
+
+    # Use bc to perform the calculation with high precision
+    bare_mass=$(echo "scale=20; 0.5/$kappa_value - 4.0" | bc)
+
+    # Print the bare_mass value to the console, trimming trailing zeros in the decimal part
+    printf "%.16f\n" "$bare_mass" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+}
+
 
 
 general_range_of_values_generator()
@@ -628,8 +764,11 @@ range_of_gauge_configurations_file_paths_generator()
 {
 :   '
     Function: range_of_gauge_configurations_file_paths_generator
+
+    Description:
     Generates an array of file paths from a directory based on the order of 
     appearance in the directory, using a specified range of indices.
+    
     Usage: range_of_gauge_configurations_file_paths_generator <start> <end> <step>
     Arguments:
     * start: The starting index (1-based) of the range.
@@ -679,11 +818,13 @@ range_of_gauge_configurations_file_paths_generator()
     # Generate the range of file paths
     if [ "$step" -gt 0 ]; then
         for ((index = start - 1; index < end; index += step)); do
-            range+=("${files[index]}")
+            range+=($(extract_configuration_label_from_file "${files[index]}"))
+            # range+=("${files[index]}")
         done
     else
         for ((index = start - 1; index >= end - 1; index += step)); do
-            range+=("${files[index]}")
+            range+=($(extract_configuration_label_from_file "${files[index]}"))
+            # range+=("${files[index]}")
         done
     fi
 

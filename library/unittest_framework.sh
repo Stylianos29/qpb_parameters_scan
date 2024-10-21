@@ -2,7 +2,7 @@
 
 
 ######################################################################
-# library/unittest_framework.sh.sh - Custom Bash Functions
+# library/unittest_framework.sh - Custom Bash Functions
 #
 # This script contains a collection of custom Bash functions designed
 # to perform various tasks, such as data manipulation, file operations,
@@ -129,6 +129,8 @@ multiple_assert()
             return 1
         fi
     done
+
+    return 0
 }
 
 
@@ -201,6 +203,7 @@ unittest()
         unittest function to find and run.
         - The summary will include the total number of tests passed and failed.
     '
+    
     local verbose=0
 
     # Parse the optional argument

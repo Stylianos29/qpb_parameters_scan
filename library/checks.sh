@@ -2,7 +2,7 @@
 
 
 ######################################################################
-# library/checks.sh.sh - ?
+# library/checks.sh - ?
 #
 # This script contains a collection of custom Bash functions ?
 #
