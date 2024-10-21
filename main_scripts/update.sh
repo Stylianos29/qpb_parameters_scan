@@ -40,7 +40,7 @@ DESTINATION_DIRECTORY_PATH=$(dirname "$(dirname "$CURRENT_SCRIPT_FULL_PATH")")
 
 # Change to the "main_scripts" directory of the "multiple_runs_project"
 # NOTE: This path is set automatically by "setup.sh"
-MAIN_SCRIPTS_DIRECTORY="/nvme/h/cy22sg1/qpb_branches/multiple_runs_project/main_scripts"
+MAIN_SCRIPTS_DIRECTORY="/nvme/h/cy22sg1/qpb_branches/qpb_parameters_scan/main_scripts"
 
 # Change to the "main_scripts" directory
 cd "$MAIN_SCRIPTS_DIRECTORY" || exit 1
