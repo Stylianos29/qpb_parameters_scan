@@ -35,7 +35,7 @@ export SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
 
 # NOTE: "parameters_scan_project" directory path is set by "setup.sh" here and not
 # in the input file to prevent accidental modification.
-PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH="/nvme/h/cy22sg1/qpb_branches/parameters_scan_project"
+PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH="/nvme/h/cy22sg1/qpb_branches/qpb_parameters_scan"
 if [ ! -d "$PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH" ]; then
     ERROR_MESSAGE="Invalid 'parameters_scan_project' directory path."
     echo "ERROR: "$ERROR_MESSAGE
@@ -565,10 +565,10 @@ for overall_outer_loop_varying_parameter_value in \
                             --partition=${PARTITION_NAME}"
                             # --reservation=short \
 
-            # sbatch ${SBATCH_OPTIONS} ${GENERIC_RUN_FULL_PATH} \
-            #                     ${BINARY} ${MPI_GEOMETRY} \
-            #                         ${filled_parameters_file_full_path} \
-            #                             ${NUMBER_OF_TASKS}
+            sbatch ${SBATCH_OPTIONS} ${GENERIC_RUN_FULL_PATH} \
+                                ${BINARY} ${MPI_GEOMETRY} \
+                                    ${filled_parameters_file_full_path} \
+                                        ${NUMBER_OF_TASKS}
 
         done
     done
