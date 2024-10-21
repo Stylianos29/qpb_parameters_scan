@@ -7,14 +7,14 @@
 # This script automates the setup of the multiple runs project by copying
 # essential scripts and configuration files to a specified destination
 # directory. It ensures that all required files are present, appropriately
-# modified, and placed in a newly created "multiple_runs_scripts" directory
+# modified, and placed in a newly created "parameters_scan_scripts" directory
 # inside the destination.
 #
 # The script checks for valid command-line arguments, creates necessary
 # directories, and updates file contents based on the destination path.
 #
 # Files copied include:
-#   1. "multiple_runs.sh" - The main script for running multiple jobs, with a
+#   1. "parameters_scan.sh" - The main script for running multiple jobs, with a
 #      warning appended that it is auto-generated.
 #   2. "input.txt" - Configuration file, with its paths and modifiable
 #      parameters automatically updated.
@@ -31,7 +31,7 @@
 #   - The destination directory must be provided as an argument.
 #   - The appropriate "_params.ini_" file is chosen based on the destination
 #     path.
-#   - The script appends auto-generated warnings to "multiple_runs.sh" and
+#   - The script appends auto-generated warnings to "parameters_scan.sh" and
 #     "update.sh".
 #   - All actions are logged, and the script exits if any errors occur.
 #
@@ -66,7 +66,7 @@ SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
 # ensures the correct path is obtained even when script is sourced.
 MAIN_SCRIPTS_DIRECTORY_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source all custom functions scripts from "multiple_runs_project/library" using
+# Source all custom functions scripts from "parameters_scan_project/library" using
 # a loop avoiding this way name-specific sourcing and thus potential typos
 sourced_scripts_count=0 # Initialize a counter for sourced files
 for custom_functions_script in $(realpath \
@@ -82,7 +82,7 @@ done
 # Check whether any files were sourced
 if [ $sourced_scripts_count -gt 0 ]; then
     log "INFO" "A total of $sourced_scripts_count custom functions scripts "\
-"from multiple_runs_project/library were successfully sourced."
+"from parameters_scan_project/library were successfully sourced."
 else
     ERROR_MESSAGE="No custom functions scripts were sourced at all."
     echo "ERROR: "$ERROR_MESSAGE
@@ -146,48 +146,48 @@ if [ ! -d "$DESTINATION_DIRECTORY_PATH" ]; then
 fi
 log "INFO" "Destination directory path is: '"${DESTINATION_DIRECTORY_PATH}"'."
 
-# All files will be copied to the "multiple_runs_scripts" directory in the
+# All files will be copied to the "parameters_scan_scripts" directory in the
 # destination directory. It will be created if it doesn't exist.
-MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH=${DESTINATION_DIRECTORY_PATH}\
-"/multiple_runs_scripts"
-if [ ! -d "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" ]; then
-    mkdir -p "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH"
+PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH=${DESTINATION_DIRECTORY_PATH}\
+"/parameters_scan_scripts"
+if [ ! -d "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" ]; then
+    mkdir -p "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH"
     log "INFO" \
-    "'multiple_runs_scripts' directory created inside destination directory."
+    "'parameters_scan_scripts' directory created inside destination directory."
 fi
 
 
 # COPY ALL NECESSARY FILES TO DESTINATION MODIFIED APPROPRIATELY IF NECESSARY
 
-# 1. "multiple_runs.sh" script
-ORIGINAL_FILE="multiple_runs.sh"
+# 1. "parameters_scan.sh" script
+ORIGINAL_FILE="parameters_scan.sh"
 check_if_file_exists $ORIGINAL_FILE \
                         "Original $ORIGINAL_FILE file cannot be located." \
                         "${SCRIPT_TERMINATION_MESSAGE}"
-# NOTE: Line "MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH=" of original
-# "multiple_runs.sh" is auto-filled
+# NOTE: Line "PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=" of original
+# "parameters_scan.sh" is auto-filled
 sed -i \
-"s|^\(MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH=\).*|\1\"\
+"s|^\(PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=\).*|\1\"\
 $(dirname $MAIN_SCRIPTS_DIRECTORY_FULL_PATH)\"|" "$ORIGINAL_FILE"
-cp $ORIGINAL_FILE $MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH
+cp $ORIGINAL_FILE $PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
     termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
     echo "Exiting..."
     exit 1
 fi
-# NOTE: A warning is appended to the copied "multiple_runs.sh" read-only script
+# NOTE: A warning is appended to the copied "parameters_scan.sh" read-only script
 WARNING_MESSAGE=\
 "\n\n#======================================================================
 \n# This script is auto-generated and should not be modified manually.
 \n# ====================================================================="
-copied_multiple_runs_script_full_path=${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}\
-"/multiple_runs.sh"
+copied_parameters_scan_script_full_path=${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}\
+"/parameters_scan.sh"
 target_line="#!/bin/bash"
-insert_message $copied_multiple_runs_script_full_path $target_line \
+insert_message $copied_parameters_scan_script_full_path $target_line \
                                                                 $WARNING_MESSAGE
-# Make copied "multiple_runs.sh" script an executable
-chmod +x $copied_multiple_runs_script_full_path
+# Make copied "parameters_scan.sh" script an executable
+chmod +x $copied_parameters_scan_script_full_path
 log "INFO" "'$ORIGINAL_FILE' script was copied successfully."
 
 # 2. "input.txt" text file
@@ -195,7 +195,7 @@ ORIGINAL_FILE=input.txt
 check_if_file_exists $ORIGINAL_FILE \
                         "Original $ORIGINAL_FILE file cannot be located." \
                         "${SCRIPT_TERMINATION_MESSAGE}"
-cp $ORIGINAL_FILE $MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH
+cp $ORIGINAL_FILE $PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
     termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
@@ -206,36 +206,36 @@ fi
 # A list of non-iterable parameters
 write_list_of_parameters_to_file NON_ITERABLE_PARAMETERS_NAMES_ARRAY \
 "List of non-iterable parameters" \
-"${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+"${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 # And a list of iterable parameters based on the overlap operator method
 overlap_operator_method_label=$(extract_overlap_operator_method \
                                                 $DESTINATION_DIRECTORY_PATH)
-if [[ "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
+if [[ "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
     overlap_operator_method_label+="_invert"
 fi
 parameters_names_array="${ITERABLE_PARAMETERS_NAMES_DICTIONARY[\
 "$overlap_operator_method_label"]}"
 write_list_of_parameters_to_file $parameters_names_array \
 "List of iterable parameters" \
-"${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+"${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 # NOTE: 
-# Check if MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH contains the substring "invert"
-if [[ ! "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
+# Check if PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH contains the substring "invert"
+if [[ ! "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
     # Remove lines from the copied input file
     sed -i '/^# For "invert" main progs/d' \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
     # Remove the line starting with "BINARY_SOLUTION_FILES_DIRECTORY="
     # and the following empty line
     sed -i '/^BINARY_SOLUTION_FILES_DIRECTORY=/{
         N
         /^.*\n$/d
-    }' "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+    }' "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 fi
 executable_name_guess=$(basename "$DESTINATION_DIRECTORY_PATH")
 # Use sed to append the value of executable_name_guess to the line starting with
 # "BINARY=../"
 sed -i "/^BINARY=..*/ s|$|${executable_name_guess}|" \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 log "INFO" "'$ORIGINAL_FILE' text file was copied successfully."
 
 # 3. Empty parameters file renamed "_params.ini_"
@@ -243,26 +243,27 @@ ORIGINAL_FILE="_params.ini_"
 # Initialize empty_parameters_file_path variable
 empty_parameters_file_path="./parameters_files/"
 ERROR_MESSAGE="Corresponding empty parameters file cannot be located."
-# The appropriate file to be copied needs to be selected 
+# The appropriate file to be copied needs to be selected
+# TODO: DRY this selection process
 # Check if destination path contains "invert"
-if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
+if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
     # Destination path contains "invert"
-    if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
+    if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
         # Destination path contains "kl"
         empty_parameters_file_path+="KL_invert_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
-    elif [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
+    elif [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
         then
         # Destination path contains "Chebyshev"
         empty_parameters_file_path+="Chebyshev_invert_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
     else
         # Destination path does not contain neither "kl" 
@@ -271,27 +272,27 @@ if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
     fi
 else
     # Destination path does not contain "invert"
-    if [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
+    if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
         # Destination path contains "kl"
         empty_parameters_file_path+="KL_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
-    elif [[ "$MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
+    elif [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
         then
         # Destination path contains "Chebyshev"
         empty_parameters_file_path+="Chebyshev_empty_parameters_file.ini"
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
     else
         # Destination path does not contain neither "kl" 
@@ -300,7 +301,7 @@ else
         check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
                         "${SCRIPT_TERMINATION_MESSAGE}"
         cp ${empty_parameters_file_path} \
-                        "${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
         copy_exit_status=$?  # Store the exit status of the copy command
     fi
 fi
@@ -324,14 +325,14 @@ check_if_file_exists $ORIGINAL_FILE \
 sed -i \
     "s|^\(MAIN_SCRIPTS_DIRECTORY=\).*|\1\"$MAIN_SCRIPTS_DIRECTORY_FULL_PATH\"|"\
         "$ORIGINAL_FILE"
-cp $ORIGINAL_FILE $MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH
+cp $ORIGINAL_FILE $PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
     termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
     echo "Exiting..."
     exit 1
 fi
-copied_update_script_full_path=${MULTIPLE_RUNS_SCRIPTS_DIRECTORY_PATH}\
+copied_update_script_full_path=${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}\
 "/$ORIGINAL_FILE"
 # NOTE: A warning is appended to the copied "update.sh" read-only script
 insert_message $copied_update_script_full_path $target_line $WARNING_MESSAGE

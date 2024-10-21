@@ -33,11 +33,11 @@ echo -e "\t\t** ENVIRONMENT VARIABLES **\n" >> "$LOG_FILE_PATH"
 export SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
                     | tr '[:lower:]' '[:upper:]')" SCRIPT EXECUTION TERMINATED"
 
-# NOTE: "multiple_runs_project" directory path is set by "setup.sh" here and not
+# NOTE: "parameters_scan_project" directory path is set by "setup.sh" here and not
 # in the input file to prevent accidental modification.
-MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH="/nvme/h/cy22sg1/qpb_branches/multiple_runs_project"
-if [ ! -d "$MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH" ]; then
-    ERROR_MESSAGE="Invalid 'multiple_runs_project' directory path."
+PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH="/nvme/h/cy22sg1/qpb_branches/parameters_scan_project"
+if [ ! -d "$PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH" ]; then
+    ERROR_MESSAGE="Invalid 'parameters_scan_project' directory path."
     echo "ERROR: "$ERROR_MESSAGE
     echo "Exiting..."
     # Log error explicitly since "log()" function hasn't been sourced yet
@@ -48,11 +48,11 @@ if [ ! -d "$MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH" ]; then
 fi
 
 # SOURCE LIBRARY SCRIPTS
-# Source all custom functions scripts from "multiple_runs_project/library" using
+# Source all custom functions scripts from "parameters_scan_project/library" using
 # a loop avoiding this way name-specific sourcing and thus potential typos
 sourced_scripts_count=0 # Initialize a counter for sourced files
 for custom_functions_script in $(realpath \
-                    "$MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH/library"/*.sh);
+                    "$PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH/library"/*.sh);
 do
     # Check if the current file in the loop is a regular file
     if [ -f "$custom_functions_script" ]; then
@@ -64,7 +64,7 @@ done
 # Check whether any files were sourced
 if [ $sourced_scripts_count -gt 0 ]; then
     log "INFO" "A total of $sourced_scripts_count custom functions scripts "\
-"from multiple_runs_project/library were successfully sourced."
+"from parameters_scan_project/library were successfully sourced."
 else
     ERROR_MESSAGE="No custom functions scripts were sourced at all."
     echo "ERROR: "$ERROR_MESSAGE
@@ -131,10 +131,10 @@ fi
 log "INFO" "Main program's executable log files directory path is valid."
 
 # Extract full path of current script's directory for later use
-multiple_runs_script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+parameters_scan_script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check if current script's directory path contains the substring "invert"
-if [[ "${multiple_runs_script_directory}" == *"invert"* ]]; then
+if [[ "${parameters_scan_script_directory}" == *"invert"* ]]; then
     # If it does then check "BINARY_SOLUTION_FILES_DIRECTORY" variable also
     check_if_directory_exists $BINARY_SOLUTION_FILES_DIRECTORY \
                                     "Invalid invert solution files directory."
@@ -149,7 +149,7 @@ echo -e "\n\t\t** PARAMETERS SPECIFICATION **\n" >> "$LOG_FILE_PATH"
 
 # Extract non-iterable parameters values
 OVERLAP_OPERATOR_METHOD=$(\
-                extract_overlap_operator_method $multiple_runs_script_directory)
+                extract_overlap_operator_method $parameters_scan_script_directory)
 # TODO: Terminate if incorrect KERNEL_OPERATOR_TYPE_FLAG
 KERNEL_OPERATOR_TYPE=$(extract_kernel_operator_type $KERNEL_OPERATOR_TYPE_FLAG)
 QCD_BETA_VALUE=$(extract_QCD_beta_value "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY")
@@ -175,7 +175,7 @@ log "INFO" "Valid elements passed to "\
 
 # Use current script's directory to choose among 6 iterable parameters arrays 
 overlap_operator_method_label=${OVERLAP_OPERATOR_METHOD}
-if [[ "${multiple_runs_script_directory}" == *"invert"* ]]; then
+if [[ "${parameters_scan_script_directory}" == *"invert"* ]]; then
     overlap_operator_method_label+="_invert"
 fi
 iterable_parameters_names_array_name="${ITERABLE_PARAMETERS_NAMES_DICTIONARY[\
@@ -387,7 +387,7 @@ done
 echo -e "\n\t\t** JOBS SUBMISSION **\n\n" >> "$LOG_FILE_PATH"
 
 # Path to generic job submissions script
-GENERIC_RUN_FULL_PATH="${MULTIPLE_RUNS_PROJECT_DIRECTORY_FULL_PATH}"
+GENERIC_RUN_FULL_PATH="${PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH}"
 GENERIC_RUN_FULL_PATH+="/main_scripts/generic_run.sh"
 if [ ! -f "$GENERIC_RUN_FULL_PATH" ]; then
     echo "Invalid path to generic job submissions script."
@@ -536,7 +536,7 @@ for overall_outer_loop_varying_parameter_value in \
 
             # For invert main progs, the binary solutions file full path needs
             # to be specified as well inside the parameters file
-            if [[ "$multiple_runs_script_directory" == *"invert"* ]]; then
+            if [[ "$parameters_scan_script_directory" == *"invert"* ]]; then
                 binary_solution_file_full_path=$BINARY_SOLUTION_FILES_DIRECTORY
                 binary_solution_file_full_path+="/solx12_"
                 binary_solution_file_full_path+="${output_filename}"
