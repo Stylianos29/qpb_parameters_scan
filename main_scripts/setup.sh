@@ -221,15 +221,10 @@ write_list_of_parameters_to_file $parameters_names_array \
 # NOTE: 
 # Check if PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH contains the substring "invert"
 if [[ ! "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
-    # Remove lines from the copied input file
-    sed -i '/^# For "invert" main progs/d' \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
-    # Remove the line starting with "BINARY_SOLUTION_FILES_DIRECTORY="
-    # and the following empty line
-    sed -i '/^BINARY_SOLUTION_FILES_DIRECTORY=/{
-        N
-        /^.*\n$/d
-    }' "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+    # Remove the line from the copied input file starting with
+    # "BINARY_SOLUTION_FILES_DIRECTORY="
+    sed -i '/^BINARY_SOLUTION_FILES_DIRECTORY=/d' \
+                    "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 fi
 executable_name_guess=$(basename "$DESTINATION_DIRECTORY_PATH")
 # Use sed to append the value of executable_name_guess to the line starting with
