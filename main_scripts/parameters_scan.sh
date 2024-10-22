@@ -85,7 +85,7 @@ check_if_file_exists $INPUT_FILE_PATH "Input file $INPUT_FILE_PATH not found."
 source "$INPUT_FILE_PATH" # Load all input file's contents
 log "INFO" "File '"${INPUT_FILE_PATH}"' has been sourced properly."
 
-check_if_file_exists $BINARY "Invalid main program's executable path."
+check_if_file_exists $MAIN_PROGRAM_EXECUTABLE "Invalid main program's executable path."
 log "INFO" "Main program's executable path is valid."
 
 # NOTE: _params.ini_ is placed in the script's directory by setup.sh
@@ -102,11 +102,11 @@ check_if_directory_exists $(dirname $PARAMETERS_FILES_DIRECTORY) \
 if [ ! -d "$PARAMETERS_FILES_DIRECTORY" ]; then
     log "INFO" "Parameters files directory created."
     mkdir -p "$PARAMETERS_FILES_DIRECTORY"
-else
-    # Check if the existing directory is not empty
-    if [ "$(ls -A "$PARAMETERS_FILES_DIRECTORY")" ]; then
-        rm -rf "$PARAMETERS_FILES_DIRECTORY"/*
-    fi
+# else
+#     # Check if the existing directory is not empty
+#     if [ "$(ls -A "$PARAMETERS_FILES_DIRECTORY")" ]; then
+#         rm -rf "$PARAMETERS_FILES_DIRECTORY"/*
+#     fi
 fi
 log "INFO" "Parameters files directory path is valid."
 
@@ -122,11 +122,11 @@ check_if_directory_exists $(dirname $LOG_FILES_DIRECTORY) \
 if [ ! -d "$LOG_FILES_DIRECTORY" ]; then
     log "INFO" "Main program's executable log files directory created."
     mkdir -p "$LOG_FILES_DIRECTORY"
-else
-    # Check if the existing directory is not empty
-    if [ "$(ls -A "$LOG_FILES_DIRECTORY")" ]; then
-        rm -rf "$LOG_FILES_DIRECTORY"/*
-    fi
+# else
+#     # Check if the existing directory is not empty
+#     if [ "$(ls -A "$LOG_FILES_DIRECTORY")" ]; then
+#         rm -rf "$LOG_FILES_DIRECTORY"/*
+#     fi
 fi
 log "INFO" "Main program's executable log files directory path is valid."
 
@@ -566,7 +566,7 @@ for overall_outer_loop_varying_parameter_value in \
                             # --reservation=short \
 
             sbatch ${SBATCH_OPTIONS} ${GENERIC_RUN_FULL_PATH} \
-                                ${BINARY} ${MPI_GEOMETRY} \
+                                ${MAIN_PROGRAM_EXECUTABLE} ${MPI_GEOMETRY} \
                                     ${filled_parameters_file_full_path} \
                                         ${NUMBER_OF_TASKS}
 

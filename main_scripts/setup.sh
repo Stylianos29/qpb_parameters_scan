@@ -233,8 +233,8 @@ if [[ ! "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
 fi
 executable_name_guess=$(basename "$DESTINATION_DIRECTORY_PATH")
 # Use sed to append the value of executable_name_guess to the line starting with
-# "BINARY=../"
-sed -i "/^BINARY=..*/ s|$|${executable_name_guess}|" \
+# "MAIN_PROGRAM_EXECUTABLE=../"
+sed -i "/^MAIN_PROGRAM_EXECUTABLE=..*/ s|$|${executable_name_guess}|" \
                         "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 log "INFO" "'$ORIGINAL_FILE' text file was copied successfully."
 
