@@ -1,10 +1,6 @@
 #!/bin/bash
 
-
-# TODO: kappa and bare mass are related
-# TODO: varying parameters and modified constant parameters mustn't have a any
-# common elements
-
+# TODO: Write description
 
 ############################ ENVIRONMENT VARIABLES #############################
 
@@ -13,6 +9,23 @@
 # the main program's executable. It ensures that custom functions are sourced,
 # the input file is loaded, and necessary directories (such as for parameter
 # and log files) are created if they don't exist.
+
+# Initialize DELETE_EXISTING_FILES as FALSE
+DELETE_EXISTING_FILES=FALSE
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -d|--delete)
+            DELETE_EXISTING_FILES=TRUE
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 # LOG FILE
 CURRENT_SCRIPT_NAME="$(basename "$0")"
@@ -102,11 +115,11 @@ check_if_directory_exists $(dirname $PARAMETERS_FILES_DIRECTORY) \
 if [ ! -d "$PARAMETERS_FILES_DIRECTORY" ]; then
     log "INFO" "Parameters files directory created."
     mkdir -p "$PARAMETERS_FILES_DIRECTORY"
-# else
-#     # Check if the existing directory is not empty
-#     if [ "$(ls -A "$PARAMETERS_FILES_DIRECTORY")" ]; then
-#         rm -rf "$PARAMETERS_FILES_DIRECTORY"/*
-#     fi
+elif [[ "$DELETE_EXISTING_FILES" == TRUE ]]; then
+    # Check if the existing directory is not empty
+    if [ "$(ls -A "$PARAMETERS_FILES_DIRECTORY")" ]; then
+        rm -rf "$PARAMETERS_FILES_DIRECTORY"/*
+    fi
 fi
 log "INFO" "Parameters files directory path is valid."
 
@@ -122,11 +135,11 @@ check_if_directory_exists $(dirname $LOG_FILES_DIRECTORY) \
 if [ ! -d "$LOG_FILES_DIRECTORY" ]; then
     log "INFO" "Main program's executable log files directory created."
     mkdir -p "$LOG_FILES_DIRECTORY"
-# else
-#     # Check if the existing directory is not empty
-#     if [ "$(ls -A "$LOG_FILES_DIRECTORY")" ]; then
-#         rm -rf "$LOG_FILES_DIRECTORY"/*
-#     fi
+elif [[ "$DELETE_EXISTING_FILES" == TRUE ]]; then
+    # Check if the existing directory is not empty
+    if [ "$(ls -A "$LOG_FILES_DIRECTORY")" ]; then
+        rm -rf "$LOG_FILES_DIRECTORY"/*
+    fi
 fi
 log "INFO" "Main program's executable log files directory path is valid."
 
