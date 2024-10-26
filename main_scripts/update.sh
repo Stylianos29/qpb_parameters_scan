@@ -43,7 +43,11 @@ DESTINATION_DIRECTORY_PATH=$(dirname "$(dirname "$CURRENT_SCRIPT_FULL_PATH")")
 MAIN_SCRIPTS_DIRECTORY="/nvme/h/cy22sg1/qpb_branches/qpb_parameters_scan/main_scripts"
 
 # Change to the "main_scripts" directory
-cd "$MAIN_SCRIPTS_DIRECTORY" || exit 1
+cd "$MAIN_SCRIPTS_DIRECTORY" || {
+    echo "Error: Unable to access 'qpb_parameters_scan/main_scripts' directory";
+    echo "Exiting...";
+    exit 1;
+}
 
 # Run the setup script with the updated destination path
 ./setup.sh --path "$DESTINATION_DIRECTORY_PATH"
