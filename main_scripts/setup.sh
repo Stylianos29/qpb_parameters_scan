@@ -1,21 +1,21 @@
 #!/bin/bash
 
 
-######################################################################
-# main_scripts/setup.sh - Script for setting up the multiple runs project
+###############################################################################
+# main_scripts/setup.sh - Script for setting up qpb_parameters_scan
 #
-# This script automates the setup of the multiple runs project by copying
-# essential scripts and configuration files to a specified destination
-# directory. It ensures that all required files are present, appropriately
-# modified, and placed in a newly created "parameters_scan_scripts" directory
-# inside the destination.
+# This script automates the setup of qpb_parameters_scan by copying essential
+# scripts and input files to a specified destination directory. It ensures that
+# all required files are present, appropriately modified, and placed in a newly
+# created "parameters_scan_scripts" directory inside the destination.
 #
 # The script checks for valid command-line arguments, creates necessary
 # directories, and updates file contents based on the destination path.
 #
 # Files copied include:
-#   1. "parameters_scan.sh" - The main script for running multiple jobs, with a
-#      warning appended that it is auto-generated.
+#   1. "parameters_scan.sh" - The main script for running jobs on the cluster
+#      for various parameters values, with a warning appended that it is
+#      auto-generated.
 #   2. "input.txt" - Configuration file, with its paths and modifiable
 #      parameters automatically updated.
 #   3. "_params.ini_" - An empty parameters file selected based on the
@@ -35,24 +35,26 @@
 #     "update.sh".
 #   - All actions are logged, and the script exits if any errors occur.
 #
-######################################################################
+###############################################################################
 
 
 # ENVIRONMENT VARIABLES
 
-# NOTE: The log file must be placed in the same directory as the script.
-# Since "setup.sh" may be executed directly or sourced from another script,
-# the script's full path is checked to construct the log file path correctly.
+# NOTE: The log file must be in the same directory as the currently running
+# script. Since "setup.sh" may be executed directly or sourced from another
+# script, the actual current script's full path is checked to construct the log
+# file path correctly.
 
-# Use the current script's path unless it's already set by another script
+# Use "setup.sh"'s path as the CURRENT_SCRIPT_FULL_PATH value unless it's
+# already set by another script running "setup.sh"
 if [ -z "$CURRENT_SCRIPT_FULL_PATH" ]; then
     CURRENT_SCRIPT_FULL_PATH="$0"
 fi
-# Extract the script name from the full path
+# Extract the current script name from the full path
 CURRENT_SCRIPT_NAME="$(basename "$CURRENT_SCRIPT_FULL_PATH")"
 # Replace ".sh" with "_log.txt" to create the log file name
 LOG_FILE_NAME=$(echo "$CURRENT_SCRIPT_NAME" | sed 's/\.sh$/_log.txt/')
-LOG_FILE_PATH="$(dirname "$CURRENT_SCRIPT_FULL_PATH")/${LOG_FILE_NAME}"
+LOG_FILE_PATH="$(dirname "$CURRENT_SCRIPT_FULL_PATH")/$LOG_FILE_NAME"
 
 # Create or override a log file. Initiate logging
 echo -e "\t\t"$(echo "$CURRENT_SCRIPT_NAME" | tr '[:lower:]' '[:upper:]') \
@@ -66,8 +68,8 @@ SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
 # ensures the correct path is obtained even when script is sourced.
 MAIN_SCRIPTS_DIRECTORY_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source all custom functions scripts from "parameters_scan_project/library" using
-# a loop avoiding this way name-specific sourcing and thus potential typos
+# Source all custom functions scripts from "parameters_scan_project/library"
+# using a loop avoiding this way name-specific sourcing and thus potential typos
 sourced_scripts_count=0 # Initialize a counter for sourced files
 for custom_functions_script in $(realpath \
                         "$MAIN_SCRIPTS_DIRECTORY_FULL_PATH/../library"/*.sh);
@@ -98,7 +100,7 @@ fi
 # Check if no arguments were passed
 if [[ "$#" -eq 0 ]]; then
     ERROR_MESSAGE="No command-line arguments were provided at all."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
+    termination_output "$ERROR_MESSAGE" "$SCRIPT_TERMINATION_MESSAGE"
     setup_script_usage
 fi
 # Parse command-line arguments
@@ -111,8 +113,8 @@ while [[ "$#" -gt 0 ]]; do
                 shift  # Skip the next argument as it's the path
             else
                 ERROR_MESSAGE="Argument for $1 is missing."
-                termination_output "${ERROR_MESSAGE}" \
-                                            "${SCRIPT_TERMINATION_MESSAGE}"
+                termination_output "$ERROR_MESSAGE" \
+                                                "$SCRIPT_TERMINATION_MESSAGE"
                 setup_script_usage
             fi
             ;;
@@ -125,8 +127,8 @@ while [[ "$#" -gt 0 ]]; do
         # Handle unknown options
         -*)
             ERROR_MESSAGE="Unknown option: $1."
-            termination_output "${ERROR_MESSAGE}" \
-                                                "${SCRIPT_TERMINATION_MESSAGE}"
+            termination_output "$ERROR_MESSAGE" \
+                                                "$SCRIPT_TERMINATION_MESSAGE"
             setup_script_usage
             ;;
         # Break the loop if no more options are found
@@ -140,11 +142,11 @@ done
 # Check if destination directory exists. If not, exit with warning
 if [ ! -d "$DESTINATION_DIRECTORY_PATH" ]; then
     ERROR_MESSAGE="Destination directory does not exist. Please check again."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
+    termination_output "$ERROR_MESSAGE" "$SCRIPT_TERMINATION_MESSAGE"
     echo "Exiting..."
     exit 1
 fi
-log "INFO" "Destination directory path is: '"${DESTINATION_DIRECTORY_PATH}"'."
+log "INFO" "Destination directory path is: '"$DESTINATION_DIRECTORY_PATH"'."
 
 # All files will be copied to the "parameters_scan_scripts" directory in the
 # destination directory. It will be created if it doesn't exist.
@@ -163,7 +165,7 @@ fi
 ORIGINAL_FILE="parameters_scan.sh"
 check_if_file_exists $ORIGINAL_FILE \
                         "Original $ORIGINAL_FILE file cannot be located." \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
+                        "$SCRIPT_TERMINATION_MESSAGE"
 # NOTE: Line "PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=" of original
 # "parameters_scan.sh" is auto-filled
 sed -i \
@@ -172,11 +174,11 @@ $(dirname $MAIN_SCRIPTS_DIRECTORY_FULL_PATH)\"|" "$ORIGINAL_FILE"
 cp $ORIGINAL_FILE $PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
+    termination_output "$ERROR_MESSAGE" "$SCRIPT_TERMINATION_MESSAGE"
     echo "Exiting..."
     exit 1
 fi
-# NOTE: A warning is appended to the copied "parameters_scan.sh" read-only script
+# NOTE: A warning is appended to copied "parameters_scan.sh" read-only script
 WARNING_MESSAGE=\
 "\n\n#======================================================================
 \n# This script is auto-generated and should not be modified manually.
@@ -185,7 +187,7 @@ copied_parameters_scan_script_full_path=${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH
 "/parameters_scan.sh"
 target_line="#!/bin/bash"
 insert_message $copied_parameters_scan_script_full_path $target_line \
-                                                                $WARNING_MESSAGE
+                                                            $WARNING_MESSAGE
 # Make copied "parameters_scan.sh" script an executable
 chmod +x $copied_parameters_scan_script_full_path
 log "INFO" "'$ORIGINAL_FILE' script was copied successfully."
@@ -194,11 +196,11 @@ log "INFO" "'$ORIGINAL_FILE' script was copied successfully."
 ORIGINAL_FILE=input.txt
 check_if_file_exists $ORIGINAL_FILE \
                         "Original $ORIGINAL_FILE file cannot be located." \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
+                        "$SCRIPT_TERMINATION_MESSAGE"
 cp $ORIGINAL_FILE $PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
+    termination_output "$ERROR_MESSAGE" "$SCRIPT_TERMINATION_MESSAGE"
     echo "Exiting..."
     exit 1
 fi
@@ -210,8 +212,10 @@ write_list_of_parameters_to_file NON_ITERABLE_PARAMETERS_NAMES_ARRAY \
 # And a list of iterable parameters based on the overlap operator method
 overlap_operator_method_label=$(extract_overlap_operator_method \
                                                 $DESTINATION_DIRECTORY_PATH)
-if [[ "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
+DESTINATION_IS_AN_INVERT_MAIN_PROGRAM="False"
+if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
     overlap_operator_method_label+="_invert"
+    DESTINATION_IS_AN_INVERT_MAIN_PROGRAM="True"
 fi
 parameters_names_array="${ITERABLE_PARAMETERS_NAMES_DICTIONARY[\
 "$overlap_operator_method_label"]}"
@@ -219,8 +223,9 @@ write_list_of_parameters_to_file $parameters_names_array \
 "List of iterable parameters" \
 "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 # NOTE: 
-# Check if PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH contains the substring "invert"
-if [[ ! "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}" == *"invert"* ]]; then
+# Check if PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH contains substring "invert"
+# if [[ ! "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
+if [ "$DESTINATION_IS_AN_INVERT_MAIN_PROGRAM" = "False" ]; then
     # Remove the line from the copied input file starting with
     # "BINARY_SOLUTION_FILES_DIRECTORY="
     sed -i '/^BINARY_SOLUTION_FILES_DIRECTORY=/d' \
@@ -230,79 +235,39 @@ executable_name_guess=$(basename "$DESTINATION_DIRECTORY_PATH")
 # Use sed to append the value of executable_name_guess to the line starting with
 # "MAIN_PROGRAM_EXECUTABLE=../"
 sed -i "/^MAIN_PROGRAM_EXECUTABLE=..*/ s|$|${executable_name_guess}|" \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+                    "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
 log "INFO" "'$ORIGINAL_FILE' text file was copied successfully."
 
 # 3. Empty parameters file renamed "_params.ini_"
 ORIGINAL_FILE="_params.ini_"
 # Initialize empty_parameters_file_path variable
-empty_parameters_file_path="./parameters_files/"
+empty_parameters_file_path="./parameters_files"
 ERROR_MESSAGE="Corresponding empty parameters file cannot be located."
-# The appropriate file to be copied needs to be selected
-# TODO: DRY this selection process
-# Check if destination path contains "invert"
-if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
-    # Destination path contains "invert"
-    if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
-        # Destination path contains "kl"
-        empty_parameters_file_path+="KL_invert_empty_parameters_file.ini"
-        check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
-        cp ${empty_parameters_file_path} \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
-        copy_exit_status=$?  # Store the exit status of the copy command
-    elif [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
-        then
-        # Destination path contains "Chebyshev"
-        empty_parameters_file_path+="Chebyshev_invert_empty_parameters_file.ini"
-        check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
-        cp ${empty_parameters_file_path} \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
-        copy_exit_status=$?  # Store the exit status of the copy command
-    else
-        # Destination path does not contain neither "kl" 
-        # or "Chebyshev"
-        empty_parameters_file_path+="Bare_invert_empty_parameters_file.ini"
-        check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
-        cp ${empty_parameters_file_path} \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
-        copy_exit_status=$?  # Store the exit status of the copy command
-    fi
-else
-    # Destination path does not contain "invert"
-    if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
-        # Destination path contains "kl"
-        empty_parameters_file_path+="KL_empty_parameters_file.ini"
-        check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
-        cp ${empty_parameters_file_path} \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
-        copy_exit_status=$?  # Store the exit status of the copy command
-    elif [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]];
-        then
-        # Destination path contains "Chebyshev"
-        empty_parameters_file_path+="Chebyshev_empty_parameters_file.ini"
-        check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
-        cp ${empty_parameters_file_path} \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
-        copy_exit_status=$?  # Store the exit status of the copy command
-    else
-        # Destination path does not contain neither "kl" 
-        # or "Chebyshev"
-        empty_parameters_file_path+="Bare_empty_parameters_file.ini"
-        check_if_file_exists $empty_parameters_file_path $ERROR_MESSAGE \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
-        cp ${empty_parameters_file_path} \
-                        "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
-        copy_exit_status=$?  # Store the exit status of the copy command
-    fi
+# Set default filename if path lacks "kl" or "Chebyshev" substrings
+empty_parameters_filename="Bare_"
+# Check if destination path contains "kl"
+if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"kl"* ]]; then
+        empty_parameters_filename="KL_"
+# Else check if destination path contains "kl"
+elif [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"Chebyshev"* ]]; then
+        empty_parameters_filename="Chebyshev_"
 fi
-if [ $copy_exit_status -ne 0 ]; then
-    ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
+# If neither of these two substrings appeared then the initial "Bare" remains
+# Check if destination path contains "invert"
+# if [[ "$PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH" == *"invert"* ]]; then
+if [ "$DESTINATION_IS_AN_INVERT_MAIN_PROGRAM" = "True" ]; then
+        empty_parameters_filename+="invert_"
+fi
+empty_parameters_filename+="empty_parameters_file.ini"
+# Construct the path of the empty parameters file to be copied
+empty_parameters_file_path="${empty_parameters_file_path}/${empty_parameters_filename}"
+check_if_file_exists "$empty_parameters_file_path" "$ERROR_MESSAGE" \
+                                                "$SCRIPT_TERMINATION_MESSAGE"
+cp ${empty_parameters_file_path} \
+                    "${PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH}/$ORIGINAL_FILE"
+if [ $? -ne 0 ]; then
+    ERROR_MESSAGE="Copying '$empty_parameters_file_path' file failed."
+    termination_output "$ERROR_MESSAGE" "$SCRIPT_TERMINATION_MESSAGE"
     echo "Exiting..."
     exit 1
 fi
@@ -315,7 +280,7 @@ log "INFO" "Empty parameters file '$(basename $empty_parameters_file_path)' "\
 ORIGINAL_FILE=update.sh
 check_if_file_exists $ORIGINAL_FILE \
                         "Original $ORIGINAL_FILE file cannot be located." \
-                        "${SCRIPT_TERMINATION_MESSAGE}"
+                        "$SCRIPT_TERMINATION_MESSAGE"
 # NOTE: Line MAIN_SCRIPTS_DIRECTORY=... of the original file is auto-filled
 sed -i \
     "s|^\(MAIN_SCRIPTS_DIRECTORY=\).*|\1\"$MAIN_SCRIPTS_DIRECTORY_FULL_PATH\"|"\
@@ -323,7 +288,7 @@ sed -i \
 cp $ORIGINAL_FILE $PARAMETERS_SCAN_SCRIPTS_DIRECTORY_PATH
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$ORIGINAL_FILE' file failed."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
+    termination_output "$ERROR_MESSAGE" "$SCRIPT_TERMINATION_MESSAGE"
     echo "Exiting..."
     exit 1
 fi
