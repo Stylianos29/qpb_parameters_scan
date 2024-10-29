@@ -2,9 +2,9 @@
 
 
 ######################################################################
-# update.sh - Script for updating a qpb_parameters_scan_project installation
+# update.sh - Script for updating a qpb_parameters_scan installation
 #
-# This script facilitates the update process for the qpb_parameters_scan_project
+# This script facilitates the update process for the qpb_parameters_scan
 # by executing the setup script located in the main scripts directory. 
 # It sets the necessary environment variables and prepares the environment 
 # for further processing.
@@ -19,7 +19,7 @@
 #   - Extracts the destination directory path by navigating two levels up from
 #     the "multiple_runs_scripts" directory.
 #   - Changes the working directory to the "main_scripts" directory of the
-#     qpb_parameters_scan_project.
+#     qpb_parameters_scan.
 #   - Executes the setup script with the updated destination path, ensuring all
 #     necessary configurations are applied.
 #
@@ -38,7 +38,7 @@ export CURRENT_SCRIPT_FULL_PATH=$(realpath "$0")
 # Extract the directory two levels above the "multiple_runs_scripts" directory
 DESTINATION_DIRECTORY_PATH=$(dirname "$(dirname "$CURRENT_SCRIPT_FULL_PATH")")
 
-# Change to the "main_scripts" directory of the "qpb_parameters_scan_project"
+# Change to the "main_scripts" directory of the "qpb_parameters_scan"
 # NOTE: This path is set automatically by "setup.sh"
 MAIN_SCRIPTS_DIRECTORY=
 
