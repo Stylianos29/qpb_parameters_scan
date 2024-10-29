@@ -85,7 +85,7 @@ done
 # Check whether any files were sourced
 if [ $sourced_scripts_count -gt 0 ]; then
     log "INFO" "A total of $sourced_scripts_count custom functions scripts "\
-"from parameters_scan_project/library were successfully sourced."
+"from qpb_parameters_scan/library were successfully sourced."
 else
     ERROR_MESSAGE="No custom functions scripts were sourced at all."
     echo "ERROR: "$ERROR_MESSAGE
@@ -192,8 +192,6 @@ elif [[ "$DESTINATION_SETUP_DIRECTORY_PATH" == *"Chebyshev"* ]]; then
         empty_parameters_filename="Chebyshev_"
 fi
 # Check if destination path contains "invert"
-# TODO:
-# if [ "$DESTINATION_IS_AN_INVERT_MAIN_PROGRAM_DIRECTORY" = "True" ]; then
 if [[ "$DESTINATION_SETUP_DIRECTORY_PATH" == *"invert"* ]]; then
         empty_parameters_filename+="invert_"
 fi
