@@ -17,9 +17,34 @@
 ######################################################################
 
 
-CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$CURRENT_SCRIPT_FULL_PATH/constants.sh"
-source "$CURRENT_SCRIPT_FULL_PATH/parameters.sh"
+# Prevent multiple sourcing of this script by exiting if INTERFACE_SH_INCLUDED 
+# is already set. Otherwise, set INTERFACE_SH_INCLUDED to mark it as sourced.
+[[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
+INTERFACE_SH_INCLUDED=1
+
+CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Source all custom functions scripts from "qpb_parameters_scan/library" using a
+# loop avoiding this way name-specific sourcing and thus potential typos
+for library_script in "$CURRENT_LIBRARY_SCRIPT_FULL_PATH";
+do
+    # Check if the current file in the loop is a regular file
+    if [ -f "$library_script" ]; then
+        source "$library_script"
+    fi
+done
+unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
+
+# TODO: Default SCRIPT_TERMINATION_MESSAGE
+# # Check if the 3rd argument was passed
+# if [ -z "$script_termination_message" ]; then
+#     # If no 3rd argument, check if global variable is not empty
+#     if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
+#         script_termination_message="$SCRIPT_TERMINATION_MESSAGE"
+#     else
+#         # If global variable is empty, assign default message
+#         script_termination_message="\n\t\t SCRIPT EXECUTION TERMINATED"
+#     fi
+# fi
 
 
 extract_overlap_operator_method()
@@ -116,11 +141,6 @@ extract_kernel_operator_type()
             return 0
             ;;
         *)
-            echo "Error: Invalid KERNEL_OPERATOR_TYPE_FLAG value "\
-                                                "'$kernel_operator_type_flag'."
-            echo "Valid values are:"
-            echo "'Standard', 'Stan', '0', or"
-            echo " 'Brillouin', 'Bri', '1'."
             return 1
             ;;
     esac
@@ -275,23 +295,31 @@ validate_indices_array()
         
         # 1. Check if the index is an integer
         if ! [[ "$index" =~ ^[0-9]+$ ]]; then
-            echo "Error: Index '$index' in array '$indices_array_name' "\
-                                                        "is not an integer."
+            error_message="Invalid value '$index' found in "
+            error_message+="'$indices_array_name' indices array. "
+            error_message+="All elements must be integers."
+            termination_output "${error_message}" \
+                                                "${SCRIPT_TERMINATION_MESSAGE}"
             return 1
         fi
 
         # 2. Check for duplicates
         if [[ -n "${seen[$index]}" ]]; then
-            echo "Error: Duplicate index '$index' found in "\
-                                                "array '$indices_array_name'."
+            error_message="Duplicate index '$index' found in array "
+            error_message+="'$indices_array_name'."
+            termination_output "${error_message}" \
+                                                "${SCRIPT_TERMINATION_MESSAGE}"
             return 1
         fi
         seen[$index]=1  # Mark the index as seen
 
         # 3. Check if the index is within the valid range
         if (( index < 0 || index > max_index )); then
-            echo "Error: Index '$index' in array '$indices_array_name' is out "\
-                                "of range (valid range is 0 to $max_index)."
+            error_message="Invalid value '$index' found in "
+            error_message+="'$indices_array_name' indices array. "
+            error_message+="All elements must be between 0 and $max_index."
+            termination_output "${error_message}" \
+                                                "${SCRIPT_TERMINATION_MESSAGE}"
             return 1
         fi
     done
@@ -393,7 +421,7 @@ is_range_string_old()
 
 # Function to validate a varying parameter values array
 # Takes the name of the array as input
-validate_varying_parameter_values_array_new()
+validate_varying_parameter_values_array()
 {
     local parameter_name="$1"
     local varying_parameter_values_array_name="$2"
@@ -426,17 +454,21 @@ local -n varying_parameter_values_array="$varying_parameter_values_array_name"
             unique_elements+=("$element")
         fi
     done
-    
-    # Check validity of each element of the varying parameter values array
-    local validating_function="\
-            ${MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY[$parameter_name]}"
-    for element in "${varying_parameter_values_array[@]}"; do
-        if [ $($validating_function "$element") -ne 0 ]; then
-            echo "Error. '${varying_parameter_values_array[*]}' array contains"\
-                "invalid elements with respect to the chosen varying parameter."
-            return 1
-        fi
-    done
+
+    # TODO: Perform a proper check of input config labels
+    # TODO: Change check function to give no output
+    if [[ $parameter_name != "GAUGE_LINKS_CONFIGURATION_LABEL" ]]; then
+        # Check validity of each element of the varying parameter values array
+        local validating_function="\
+                ${MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY[$parameter_name]}"
+        for element in "${varying_parameter_values_array[@]}"; do
+            if [ $($validating_function "$element") -ne 0 ]; then 
+                echo "Error. '${varying_parameter_values_array[*]}' array contains"\
+                    "invalid elements with respect to the chosen varying parameter."
+                return 1
+            fi
+        done
+    fi
 
     return 0
 }
@@ -518,13 +550,18 @@ validate_updated_constant_parameters_array()
 
         # Check if the key is in the iterable_parameters_array
         if [[ ! " ${iterable_parameters_array[@]} " =~ " ${key} " ]]; then
-            echo "Error: Invalid parameter name to be updated: '$key'."
+            error_message="Invalid parameter name to be updated: '$key'."
+            termination_output "${error_message}" \
+                                                "${SCRIPT_TERMINATION_MESSAGE}"
             return 1
         fi
 
         # Check if the key is in the varying_iterable_parameters_array
         if [[ " ${varying_iterable_parameters_array[@]} " =~ " ${key} " ]]; then
-            echo "Error: A fixed value cannot be assigned to the varying parameter: '$key'."
+            error_message="A fixed value cannot be assigned to the "
+            error_message+="varying parameter: '$key'."
+            termination_output "${error_message}" \
+                                                "${SCRIPT_TERMINATION_MESSAGE}"
             return 1
         fi
     done
@@ -670,7 +707,8 @@ constant_parameters_update()
             # Attempt to update GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH
             updated_file_path=$(match_configuration_label_to_file "$value")
             if [ $? -ne 0 ]; then
-                echo "Error: Invalid configuration label '$value'."
+                warning_message="Invalid configuration label '$value' ignored."
+                log "WARNING" "$warning_message"
                 continue  # Skip updating this key if there was an error
             fi
             eval "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH='$updated_file_path'"
@@ -679,14 +717,20 @@ constant_parameters_update()
         # Check for BARE_MASS and KAPPA_VALUE updates
         if [[ "$key" == "BARE_MASS" ]]; then
             if [ "$kappa_value_updated" = true ]; then
-                echo "Error: Cannot update both 'BARE_MASS' and 'KAPPA_VALUE' at the same time."
+                error_message="Cannot update both 'BARE_MASS' and "
+                error_message+="'KAPPA_VALUE' at the same time."
+                termination_output "${error_message}" \
+                                "${script_termination_message}"
                 return 1
             fi
             bare_mass_updated=true
             KAPPA_VALUE=$(calculate_kappa_value "$value")
         elif [[ "$key" == "KAPPA_VALUE" ]]; then
             if [ "$bare_mass_updated" = true ]; then
-                echo "Error: Cannot update both 'BARE_MASS' and 'KAPPA_VALUE' at the same time."
+                error_message="Cannot update both 'BARE_MASS' and "
+                error_message+="'KAPPA_VALUE' at the same time."
+                termination_output "${error_message}" \
+                                                "${script_termination_message}"
                 return 1
             fi
             kappa_value_updated=true
@@ -694,6 +738,8 @@ constant_parameters_update()
         fi
 
     done
+
+    return 0
 }
 
 
@@ -944,16 +990,20 @@ validate_indices_array_old()
     for element in "${indices_array[@]}"; do
         # Check for any non-integer elements in the input array
         if ! [[ "$element" =~ ^-?[0-9]+$ ]]; then
-            echo "Invalid value '$element' found in '$indices_array_name'" \
-                 "indices array."
-            echo "All elements must be integers."
+            error_message="Invalid value '$element' found in "\
+                                    "'$indices_array_name' indices array.\n"
+            error_message+="All elements must be integers."
+            termination_output "${error_message}" "${script_termination_message}"
+            echo "Exiting..."
             return 1
         fi
         # Check for any out-of-range integer elements in the input array
         if (( element < 0 || element >= list_length )); then
-            echo "Invalid value '$element' found in '$indices_array_name'" \
-                 "indices array."
-            echo "All elements must be between 0 and $((list_length - 1))."
+            error_message="Invalid value '$element' found in "\
+                                    "'$indices_array_name' indices array.\n"
+            error_message+="All elements must be between 0 and $((list_length - 1))."
+            termination_output "${error_message}" "${script_termination_message}"
+            echo "Exiting..."
             return 1
         fi
         # Check if any elements of the input array correspond to the index of 
@@ -961,15 +1011,19 @@ validate_indices_array_old()
         # global constant array
         if [[ "${MODIFIABLE_PARAMETERS_LIST[$element]}" == "OPERATOR_TYPE" ]];
         then
-            echo "Invalid value '$element' found in '$indices_array_name'" \
-                 "indices array."
-            echo "Index corresponds to 'OPERATOR_TYPE'."
+            error_message="Invalid value '$element' found in "\
+                                    "'$indices_array_name' indices array.\n"
+            error_message+="Index corresponds to 'OPERATOR_TYPE'."
+            termination_output "${error_message}" "${script_termination_message}"
+            echo "Exiting..."
             return 1
         fi
         # Check for any duplicates in the input array
         if [[ -n "${already_encountered_indices[$element]}" ]]; then
-            echo "Duplicate index '$element' found in '$indices_array_name'" \
+            error_message="Duplicate index '$element' found in '$indices_array_name'" \
                  "indices array."
+            termination_output "${error_message}" "${script_termination_message}"
+            echo "Exiting..."
             return 1
         else
             already_encountered_indices[$element]=1
@@ -1166,7 +1220,7 @@ exclude_elements_from_modifiable_parameters_list_by_index()
 
 
 # TODO: This function is way too large and needs to be split
-validate_varying_parameter_values_array()
+validate_varying_parameter_values_array_old()
 {
 :   '
     Function: validate_varying_parameter_values_array
@@ -1303,12 +1357,12 @@ compare_no_common_elements()
 
     # If common elements were found, print an error
     if [ ${#common_elements[@]} -gt 0 ]; then
-        echo "Error: Common elements found: '${common_elements[@]}'"
+        error_message="No varying parameters values can be printed as constant."
+        termination_output "${error_message}" "${SCRIPT_TERMINATION_MESSAGE}"
         return 1
-    # else
-    #     echo "No common elements found."
-        return 0
     fi
+
+    return 0
 }
 
 
@@ -1322,9 +1376,15 @@ print_lattice_dimensions() {
 
 
 
-
-
 modify_decimal_format() {
+    local input_string="$1"
+    local modified_string="${input_string//./p}"
+    echo "$modified_string"
+}
+
+
+
+modify_decimal_format_old() {
 :   '
     Function to check if a value contains a decimal number and modify its format.
     Parameters:
@@ -1347,7 +1407,7 @@ modify_decimal_format() {
 }
 
 
-modify_decimal_format_old()
+modify_decimal_format_old_old()
 {
 :   '
     Function to check if a value is a decimal number and modify its format.
@@ -1575,4 +1635,22 @@ validate_updated_constant_parameters_array_old()
     done
 
     return 0
+}
+
+
+
+print_array_limited() {
+    local -n array=$1  # Use nameref to pass array by name
+    local limit=${2:-10}  # Max number of elements to show, default is 10
+
+    # If the array length is within the limit, print all elements
+    if [ "${#array[@]}" -le "$limit" ]; then
+        echo "${array[@]}"
+    else
+        # Calculate the split points
+        local half_limit=$((limit / 2))
+        
+        # Print first half, then '...', then last half
+        echo "${array[@]:0:half_limit} ... ${array[@]: -half_limit}"
+    fi
 }
