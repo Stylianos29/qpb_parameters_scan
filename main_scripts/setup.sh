@@ -60,7 +60,7 @@ echo -e "\t\t"$(echo "$CURRENT_SCRIPT_NAME" | tr '[:lower:]' '[:upper:]') \
                 "SCRIPT EXECUTION INITIATED\n" > "$LOG_FILE_PATH"
 
 # Script termination message to be used for finalizing logging
-SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
+export SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
                     | tr '[:lower:]' '[:upper:]')" SCRIPT EXECUTION TERMINATED"
 
 # SOURCE LIBRARY SCRIPTS
@@ -103,7 +103,7 @@ fi
 if [[ "$#" -eq 0 ]]; then
     # Print error message and exit if no arguments were passed at all
     ERROR_MESSAGE="No command-line arguments were provided at all."
-    termination_output "$ERROR_MESSAGE" "$SCRIPT_TERMINATION_MESSAGE"
+    termination_output "$ERROR_MESSAGE"
     setup_script_usage
     exit 1
 fi
@@ -117,8 +117,7 @@ while [[ "$#" -gt 0 ]]; do
                 shift  # Skip the next argument as it's the path
             else
                 ERROR_MESSAGE="Argument for $1 is missing."
-                termination_output "$ERROR_MESSAGE" \
-                                                "$SCRIPT_TERMINATION_MESSAGE"
+                termination_output "$ERROR_MESSAGE"
                 setup_script_usage
                 exit 1
             fi
@@ -133,8 +132,7 @@ while [[ "$#" -gt 0 ]]; do
         # Handle unknown options
         -*)
             ERROR_MESSAGE="Unknown option: $1."
-            termination_output "$ERROR_MESSAGE" \
-                                                "$SCRIPT_TERMINATION_MESSAGE"
+            termination_output "$ERROR_MESSAGE"
             setup_script_usage
             exit 1
             ;;
@@ -151,7 +149,7 @@ done
 # Check if passed destination directory exists. If not, exit with error message
 ERROR_MESSAGE="Destination directory does not exist. Please check again."
 check_if_directory_exists "${DESTINATION_DIRECTORY_PATH}" "$ERROR_MESSAGE" \
-                                        "$SCRIPT_TERMINATION_MESSAGE" || exit 1
+                                                                    || exit 1
 log "INFO" "Destination directory path is: '"$DESTINATION_DIRECTORY_PATH"'."
 
 # NOTE: Setup files will be copied to a setup directory within the destination
@@ -208,18 +206,13 @@ SETUP_FILES_LIST+=("$empty_parameters_file_path")
 for original_setup_file in "${SETUP_FILES_LIST[@]}"; do
     original_setup_file_full_path=$(realpath \
                 "${MAIN_SCRIPTS_DIRECTORY_FULL_PATH}/${original_setup_file}")
+    # Check if file exists and then copy it to destination setup directory
     error_message="Original $original_setup_file file cannot be located."
     check_if_file_exists "$original_setup_file_full_path" "$error_message" \
-                                        "$SCRIPT_TERMINATION_MESSAGE" || exit 1
-    cp "$original_setup_file_full_path" "$DESTINATION_SETUP_DIRECTORY_PATH"
-    if [ $? -ne 0 ]; then
-        # If copy fails, output error and terminate script
-        error_message="Copying original '$(basename "$original_setup_file")'"\
-        " file failed."
-        termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE"
-        echo "Exiting..."
-        exit 1
-    fi
+                                                                    || exit 1
+    error_message="Copying original '"$original_setup_file"' file failed."
+    copy_file_and_check "$original_setup_file_full_path" \
+                "$DESTINATION_SETUP_DIRECTORY_PATH" "$error_message" || exit 1
     log "INFO" "Original '$original_setup_file' file was copied successfully."
     # Set executable permission if the file is a script
     if [[ "$original_setup_file" == *.sh ]]; then
@@ -247,6 +240,7 @@ for copied_setup_file in "${SETUP_FILES_LIST[@]}"; do
 done
 
 # And some more specific modifications on individual files
+# TODO: DRY line replacement in copied files using custom function
 
 # 1. "parameters_scan.sh" script
 COPIED_SETUP_FILE_NAME="parameters_scan.sh"
@@ -255,7 +249,8 @@ copied_setup_file_full_path="${DESTINATION_SETUP_DIRECTORY_PATH}/"\
 # Line "QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=" is auto-filled
 sed -i "s|^\(QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=\).*|\1\"$(dirname\
  $MAIN_SCRIPTS_DIRECTORY_FULL_PATH)\"|" "$copied_setup_file_full_path" || { 
-    echo "Error: Could not modify copied '$COPIED_SETUP_FILE_NAME' file.";
+    error_message="Could not modify copied '$COPIED_SETUP_FILE_NAME' file.";
+    termination_output "$error_message";
     exit 1;
     }
 log "INFO" "Copied '$COPIED_SETUP_FILE_NAME' file has been modified."
@@ -281,7 +276,7 @@ if [[ ! "$overlap_operator_method_label" == *"invert"* ]]; then
     sed -i '/^BINARY_SOLUTION_FILES_DIRECTORY=/d' \
         "$copied_setup_file_full_path" || { 
     error_message="Could not modify copied '$COPIED_SETUP_FILE_NAME' file.";
-    termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+    termination_output "$error_message";
     exit 1;
     }
 fi
@@ -291,7 +286,7 @@ executable_name_guess=$(basename "$DESTINATION_DIRECTORY_PATH")
 sed -i "/^MAIN_PROGRAM_EXECUTABLE=..*/ s|$|${executable_name_guess}|" \
                                         "$copied_setup_file_full_path" || { 
     error_message="Could not modify copied '$COPIED_SETUP_FILE_NAME' file.";
-    termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+    termination_output "$error_message";
     exit 1;
     }
 log "INFO" "Copied '$COPIED_SETUP_FILE_NAME' file has been modified."
@@ -304,7 +299,7 @@ mv $copied_setup_file_full_path \
         "${DESTINATION_SETUP_DIRECTORY_PATH}/_params.ini_" || { 
     error_message="Could not rename copied '$empty_parameters_filename' "\
     "file to '_params.ini_'.";
-    termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+    termination_output "$error_message";
     exit 1;
     }
 log "INFO" "Copied '$empty_parameters_filename' file has been renamed "\
@@ -320,7 +315,7 @@ sed -i \
         "$copied_setup_file_full_path" || { 
     error_message="Could not modify copied '$COPIED_SETUP_FILE_NAME' "\
     "file.";
-    termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+    termination_output "$error_message";
     exit 1;
     }
 log "INFO" "Copied '$COPIED_SETUP_FILE_NAME' file has been modified."
@@ -340,3 +335,4 @@ echo "$final_message"
 log "INFO" "${final_message}"
 
 echo -e $SCRIPT_TERMINATION_MESSAGE >> "$LOG_FILE_PATH"
+unset SCRIPT_TERMINATION_MESSAGE
