@@ -16,7 +16,7 @@
 #   - Logs all actions and outputs any errors if steps fail.
 #
 # Files copied include:
-#   1. "parameters_scan.sh" - Main script for cluster jobs for various
+#   1. "scan.sh" - Main script for cluster jobs for various
 #      parameters values, with a read-only warning appended.
 #   2. "input.txt" - Input file, with its paths and modifiable parameters
 #      automatically updated.
@@ -174,7 +174,7 @@ log "INFO" "All files will be copied inside the "\
 
 # CONSTRUCT SETUP FILES LIST
 
-SETUP_FILES_LIST=("input.txt" "input_file_instructions.md" "parameters_scan.sh"\
+SETUP_FILES_LIST=("input.txt" "input_file_instructions.md" "scan.sh"\
                                                         "usage.sh" "update.sh")
 
 # NOTE: An empty parameters file, selected based on the destination directory
@@ -242,8 +242,8 @@ done
 # And some more specific modifications on individual files
 # TODO: DRY line replacement in copied files using custom function
 
-# 1. "parameters_scan.sh" script
-COPIED_SETUP_FILE_NAME="parameters_scan.sh"
+# 1. "scan.sh" script
+COPIED_SETUP_FILE_NAME="scan.sh"
 copied_setup_file_full_path="${DESTINATION_SETUP_DIRECTORY_PATH}/"\
 "$COPIED_SETUP_FILE_NAME"
 # Line "QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=" is auto-filled
