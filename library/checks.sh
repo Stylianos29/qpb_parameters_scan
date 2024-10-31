@@ -15,8 +15,22 @@
 ######################################################################
 
 
-CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$CURRENT_SCRIPT_FULL_PATH/constants.sh"
+# Prevent multiple sourcing of this script by exiting if CHECKS_SH is already
+# set. Otherwise, set CHECKS_SH to mark it as sourced.
+[[ -n "${CHECKS_SH}" ]] && return
+CHECKS_SH=1
+
+CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Source all custom functions scripts from "qpb_parameters_scan/library" using a
+# loop avoiding this way name-specific sourcing and thus potential typos
+for library_script in "$CURRENT_LIBRARY_SCRIPT_FULL_PATH";
+do
+    # Check if the current file in the loop is a regular file
+    if [ -f "$library_script" ]; then
+        source "$library_script"
+    fi
+done
+unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
 
 
 check_parameter_name()
