@@ -18,6 +18,7 @@
 
 # COMMAND-LINE ARGUMENTS CHECKS
 
+# TODO: Add a --usage flag
 delete_existing_files="False" # Initialize
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -179,11 +180,11 @@ CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Check if current script's directory path contains the substring "invert"
 MAIN_PROGRAM_IS_INVERT="False" # Initial value
 if [[ "${CURRENT_SCRIPT_FULL_PATH}" == *"invert"* ]]; then
-    # If it does then check "BINARY_SOLUTION_FILES_DIRECTORY" variable also
+    # If it does then check "BINARY_INVERT_SOLUTION_FILES_DIRECTORY" variable also
     error_message="Invalid invert solution files directory."
-    check_if_directory_exists "$BINARY_SOLUTION_FILES_DIRECTORY" \
+    check_if_directory_exists "$BINARY_INVERT_SOLUTION_FILES_DIRECTORY" \
                                                     "$error_message" || exit 1
-    BINARY_SOLUTION_FILES_DIRECTORY=$(realpath $BINARY_SOLUTION_FILES_DIRECTORY)
+    BINARY_INVERT_SOLUTION_FILES_DIRECTORY=$(realpath $BINARY_INVERT_SOLUTION_FILES_DIRECTORY)
     log "INFO" "Invert solution files directory path is valid."
     # Set "MAIN_PROGRAM_IS_INVERT" boolean variable to True for later use
     MAIN_PROGRAM_IS_INVERT="True"
@@ -603,7 +604,7 @@ for overall_outer_loop_varying_parameter_value in \
             # For invert main progs, the binary solutions file full path needs
             # to be specified as well inside the parameters file
             if [[ "${MAIN_PROGRAM_IS_INVERT}" == "True" ]]; then
-                binary_solution_file_full_path=$BINARY_SOLUTION_FILES_DIRECTORY
+                binary_solution_file_full_path=$BINARY_INVERT_SOLUTION_FILES_DIRECTORY
                 binary_solution_file_full_path+="/${output_filename}.dat"
                 parameter_name="BINARY_INVERT_SOLUTION_FILE_PATH"
                 parameter_value=$binary_solution_file_full_path
