@@ -175,7 +175,7 @@ log "INFO" "All files will be copied inside the "\
 # CONSTRUCT SETUP FILES LIST
 
 SETUP_FILES_LIST=("input.txt" "input_file_instructions.md" "parameters_scan.sh"\
-                                                                    "update.sh")
+                                                        "usage.sh" "update.sh")
 
 # NOTE: An empty parameters file, selected based on the destination directory
 # path, needs to be also included in the setup files list to be copied.
@@ -315,6 +315,19 @@ sed -i \
         "$copied_setup_file_full_path" || { 
     error_message="Could not modify copied '$COPIED_SETUP_FILE_NAME' "\
     "file.";
+    termination_output "$error_message";
+    exit 1;
+    }
+log "INFO" "Copied '$COPIED_SETUP_FILE_NAME' file has been modified."
+
+# 5. "usage.sh" script
+COPIED_SETUP_FILE_NAME="usage.sh"
+copied_setup_file_full_path="${DESTINATION_SETUP_DIRECTORY_PATH}/"\
+"$COPIED_SETUP_FILE_NAME"
+# Line "QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=" is auto-filled
+sed -i "s|^\(QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=\).*|\1\"$(dirname\
+ $MAIN_SCRIPTS_DIRECTORY_FULL_PATH)\"|" "$copied_setup_file_full_path" || { 
+    error_message="Could not modify copied '$COPIED_SETUP_FILE_NAME' file.";
     termination_output "$error_message";
     exit 1;
     }
