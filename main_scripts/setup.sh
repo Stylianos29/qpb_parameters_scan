@@ -53,7 +53,7 @@ fi
 CURRENT_SCRIPT_NAME="$(basename "$CURRENT_SCRIPT_FULL_PATH")"
 # Replace ".sh" with "_log.txt" to create the log file name
 LOG_FILE_NAME=$(echo "$CURRENT_SCRIPT_NAME" | sed 's/\.sh$/_log.txt/')
-LOG_FILE_PATH="$(dirname "$CURRENT_SCRIPT_FULL_PATH")/${LOG_FILE_NAME}"
+export LOG_FILE_PATH="$(dirname "$CURRENT_SCRIPT_FULL_PATH")/${LOG_FILE_NAME}"
 
 # Create or override a log file. Initiate logging
 echo -e "\t\t"$(echo "$CURRENT_SCRIPT_NAME" | tr '[:lower:]' '[:upper:]') \
@@ -348,4 +348,6 @@ echo "$final_message"
 log "INFO" "${final_message}"
 
 echo -e $SCRIPT_TERMINATION_MESSAGE >> "$LOG_FILE_PATH"
+
 unset SCRIPT_TERMINATION_MESSAGE
+unset LOG_FILE_PATH
