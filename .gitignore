@@ -1,5 +1,13 @@
 .git
 .vscode
 archive
-examples/*
 main_scripts/setup_log.txt
+examples/run.err
+examples/run.sh
+examples/run.txt
+examples/overlap_kl/invert/qpb_parameters_scan_files/*
+examples/overlap_kl/sign_squared_violation/qpb_parameters_scan_files/*
+examples/bare_operator/sign_squared_violation/qpb_parameters_scan_files/*
+examples/bare_operator/invert/qpb_parameters_scan_files/*
+examples/overlap_Chebyshev/invert/qpb_parameters_scan_files/*
+examples/overlap_Chebyshev/sign_squared_violation/qpb_parameters_scan_files/*
