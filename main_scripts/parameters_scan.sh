@@ -1,6 +1,12 @@
 #!/bin/bash
 
 # TODO: Write description
+######################################################################
+# usage.sh - Script for 
+#
+#
+######################################################################
+
 
 ############################ ENVIRONMENT VARIABLES #############################
 
@@ -10,14 +16,14 @@
 # the input file is loaded, and necessary directories (such as for parameter
 # and log files) are created if they don't exist.
 
-# Initialize DELETE_EXISTING_FILES as FALSE
-DELETE_EXISTING_FILES=FALSE
+# COMMAND-LINE ARGUMENTS CHECKS
 
+delete_existing_files="False" # Initialize
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -d|--delete)
-            DELETE_EXISTING_FILES=TRUE
+            delete_existing_files="True"
             ;;
         *)
             echo "Unknown option: $1"
@@ -27,17 +33,18 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# LOG FILE
+# CONSTRUCT LOG FILE
+
 CURRENT_SCRIPT_NAME="$(basename "$0")"
 
 # Current script's log file must be in script directory. Replace ".sh" with
 # "_log.txt" to create the log file name and path
-LOG_FILE_PATH=$(realpath \
+export LOG_FILE_PATH=$(realpath \
                 "./"$(echo "$CURRENT_SCRIPT_NAME" | sed 's/\.sh$/_log.txt/'))
 
 # Create or override log file. Initiate logging
 echo -e "\t\t"$(echo "$CURRENT_SCRIPT_NAME" | tr '[:lower:]' '[:upper:]') \
-                "SCRIPT EXECUTION INITIATED\n" > "$LOG_FILE_PATH"
+                            "SCRIPT EXECUTION INITIATED\n" > "$LOG_FILE_PATH"
 
 # Split logging into parts for readability
 echo -e "\t\t** ENVIRONMENT VARIABLES **\n" >> "$LOG_FILE_PATH"
@@ -46,11 +53,13 @@ echo -e "\t\t** ENVIRONMENT VARIABLES **\n" >> "$LOG_FILE_PATH"
 export SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
                     | tr '[:lower:]' '[:upper:]')" SCRIPT EXECUTION TERMINATED"
 
-# NOTE: "parameters_scan_project" directory path is set by "setup.sh" here and not
-# in the input file to prevent accidental modification.
-PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH="/nvme/h/cy22sg1/qpb_branches/qpb_parameters_scan"
-if [ ! -d "$PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH" ]; then
-    ERROR_MESSAGE="Invalid 'parameters_scan_project' directory path."
+# SOURCE LIBRARY SCRIPTS
+
+# NOTE: "qpb_parameters_scan" project directory path is set by "setup.sh" here
+# and not in the input file to prevent accidental modification.
+QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH=
+if [ ! -d "$QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH" ]; then
+    ERROR_MESSAGE="Invalid 'qpb_parameters_scan' project directory path."
     echo "ERROR: "$ERROR_MESSAGE
     echo "Exiting..."
     # Log error explicitly since "log()" function hasn't been sourced yet
@@ -60,12 +69,11 @@ if [ ! -d "$PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH" ]; then
     exit 1
 fi
 
-# SOURCE LIBRARY SCRIPTS
-# Source all custom functions scripts from "parameters_scan_project/library" using
-# a loop avoiding this way name-specific sourcing and thus potential typos
+# Source all custom functions scripts from "qpb_parameters_scan/library" using a
+# loop avoiding this way name-specific sourcing and thus potential typos
 sourced_scripts_count=0 # Initialize a counter for sourced files
 for custom_functions_script in $(realpath \
-                    "$PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH/library"/*.sh);
+            "$QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH/library"/*.sh);
 do
     # Check if the current file in the loop is a regular file
     if [ -f "$custom_functions_script" ]; then
@@ -73,11 +81,10 @@ do
         ((sourced_scripts_count++)) # Increment counter for each sourced script
     fi
 done
-
 # Check whether any files were sourced
 if [ $sourced_scripts_count -gt 0 ]; then
     log "INFO" "A total of $sourced_scripts_count custom functions scripts "\
-"from parameters_scan_project/library were successfully sourced."
+"from qpb_parameters_scan/library were successfully sourced."
 else
     ERROR_MESSAGE="No custom functions scripts were sourced at all."
     echo "ERROR: "$ERROR_MESSAGE
@@ -88,54 +95,75 @@ else
     echo -e $SCRIPT_TERMINATION_MESSAGE >> "$LOG_FILE_PATH"
     exit 1
 fi
-# And now all the custom functions can be used...
-# NOTE: All "check_if" functions exit with error if they fail
 
-# INPUT FILE
+# SOURCE INPUT FILE
+
 # NOTE: input.txt is placed in the script's directory by setup.sh
 INPUT_FILE_PATH="./input.txt"
-check_if_file_exists $INPUT_FILE_PATH "Input file $INPUT_FILE_PATH not found."
+error_message="Input file '$INPUT_FILE_PATH' could not be found."
+check_if_file_exists "$INPUT_FILE_PATH" "$error_message" || exit 1
 source "$INPUT_FILE_PATH" # Load all input file's contents
 log "INFO" "File '"${INPUT_FILE_PATH}"' has been sourced properly."
 
-check_if_file_exists $MAIN_PROGRAM_EXECUTABLE "Invalid main program's executable path."
+# CHECK MAIN PROGRAM'S EXECUTABLE PATH
+
+error_message="Invalid main program's executable path."
+check_if_file_exists "$MAIN_PROGRAM_EXECUTABLE" "$error_message" || exit 1
 log "INFO" "Main program's executable path is valid."
 
-# NOTE: _params.ini_ is placed in the script's directory by setup.sh
-check_if_file_exists $EMPTY_PARAMETERS_FILE_PATH \
-                                        "Invalid empty parameters file path."
-log "INFO" "Empty parameters file path is valid."
-EMPTY_PARAMETERS_FILE_FULL_PATH=$(realpath $EMPTY_PARAMETERS_FILE_PATH)
+# CHECK EMPTY PARAMETERS FILE PATH
 
-# Check if parent directory of parameters files directory exists
-# to validate the latter's directory path, as it may not exist yet.
-check_if_directory_exists $(dirname $PARAMETERS_FILES_DIRECTORY) \
-                "Parent directory of parameters files directory does not exist."
+# NOTE: _params.ini_ is placed by default in this script's directory by setup.sh
+error_message="Invalid empty parameters file path."
+check_if_file_exists "$EMPTY_PARAMETERS_FILE_PATH" $error_message || exit 1
+EMPTY_PARAMETERS_FILE_FULL_PATH=$(realpath $EMPTY_PARAMETERS_FILE_PATH)
+log "INFO" "Empty parameters file path is valid."
+
+# CHECK PARAMETERS FILES DIRECTORY PATH
+
+# Check if the parent directory of the parameters files exists, since the 
+# parameters files directory itself may not yet be created.
+error_message="Parent directory of parameters files directory does not exist."
+check_if_directory_exists "$(dirname $PARAMETERS_FILES_DIRECTORY)" \
+                                                    "$error_message" || exit 1
+log "INFO" "Parameters files directory path is valid."
 # Create parameters files directory if it doesn't already exist
 if [ ! -d "$PARAMETERS_FILES_DIRECTORY" ]; then
-    log "INFO" "Parameters files directory created."
     mkdir -p "$PARAMETERS_FILES_DIRECTORY"
-elif [[ "$DELETE_EXISTING_FILES" == TRUE ]]; then
+    log_message="Parameters files directory "
+    log_message+="'${PARAMETERS_FILES_DIRECTORY}' was created."
+    log "INFO" "$log_message"
+# Also, if requested, delete all files if the directory exists and is not empty.
+elif [[ "$delete_existing_files" == "True" ]]; then
     # Check if the existing directory is not empty
     if [ "$(ls -A "$PARAMETERS_FILES_DIRECTORY")" ]; then
         rm -rf "$PARAMETERS_FILES_DIRECTORY"/*
+        log "INFO" "All files in parameters files directory were deleted."
     fi
 fi
-log "INFO" "Parameters files directory path is valid."
 
-check_if_directory_exists $GAUGE_LINKS_CONFIGURATIONS_DIRECTORY \
-                                "Invalid gauge links configurations directory."
+# CHECK GAUGE LINKS CONFIGURATIONS DIRECTORY PATH
+
+error_message="Invalid gauge links configurations directory."
+check_if_directory_exists "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" \
+                                                    "$error_message" || exit 1
 log "INFO" "Gauge links configurations directory path is valid."
 
-# Check if parent directory of main program's log files directory exists
-# to validate the latter's directory path, as it may not exist yet.
+# CHECK LOG FILES DIRECTORY PATH
+
+# Check if the parent directory of the log files exists, since the parameters
+# files directory itself may not yet be created.
+error_message="Parent directory of log files directory does not exist."
 check_if_directory_exists $(dirname $LOG_FILES_DIRECTORY) \
-                    "Parent directory of log files directory does not exist."
+                                                    "$error_message" || exit 1
 # Create executable's log files directory if it doesn't already exist
 if [ ! -d "$LOG_FILES_DIRECTORY" ]; then
-    log "INFO" "Main program's executable log files directory created."
     mkdir -p "$LOG_FILES_DIRECTORY"
-elif [[ "$DELETE_EXISTING_FILES" == TRUE ]]; then
+    log_message="Main program's executable log files directory "
+    log_message+="'${LOG_FILES_DIRECTORY}' was created."
+    log "INFO" "$log_message"
+# Also, if requested, delete all files if the directory exists and is not empty.
+elif [[ "$delete_existing_files" == "True" ]]; then
     # Check if the existing directory is not empty
     if [ "$(ls -A "$LOG_FILES_DIRECTORY")" ]; then
         rm -rf "$LOG_FILES_DIRECTORY"/*
@@ -143,28 +171,47 @@ elif [[ "$DELETE_EXISTING_FILES" == TRUE ]]; then
 fi
 log "INFO" "Main program's executable log files directory path is valid."
 
+# CHECK BINARY SOLUTION FILES DIRECTORY PATH
+
 # Extract full path of current script's directory for later use
-parameters_scan_script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check if current script's directory path contains the substring "invert"
-if [[ "${parameters_scan_script_directory}" == *"invert"* ]]; then
+MAIN_PROGRAM_IS_INVERT="False" # Initial value
+if [[ "${CURRENT_SCRIPT_FULL_PATH}" == *"invert"* ]]; then
     # If it does then check "BINARY_SOLUTION_FILES_DIRECTORY" variable also
-    check_if_directory_exists $BINARY_SOLUTION_FILES_DIRECTORY \
-                                    "Invalid invert solution files directory."
+    error_message="Invalid invert solution files directory."
+    check_if_directory_exists "$BINARY_SOLUTION_FILES_DIRECTORY" \
+                                                    "$error_message" || exit 1
+    BINARY_SOLUTION_FILES_DIRECTORY=$(realpath $BINARY_SOLUTION_FILES_DIRECTORY)
     log "INFO" "Invert solution files directory path is valid."
+    # Set "MAIN_PROGRAM_IS_INVERT" boolean variable to True for later use
+    MAIN_PROGRAM_IS_INVERT="True"
 fi
 
 ########################### PARAMETERS SPECIFICATION ###########################
 
+# This section sets the values for non-iterable parameters, checks the requested
+# varying iterable parameters
+
 echo -e "\n\t\t** PARAMETERS SPECIFICATION **\n" >> "$LOG_FILE_PATH"
 
-# NON-ITERABLE PARAMETERS VALUES
+# SET NON-ITERABLE PARAMETERS VALUES
 
 # Extract non-iterable parameters values
 OVERLAP_OPERATOR_METHOD=$(\
-                extract_overlap_operator_method $parameters_scan_script_directory)
-# TODO: Terminate if incorrect KERNEL_OPERATOR_TYPE_FLAG
+                extract_overlap_operator_method $CURRENT_SCRIPT_FULL_PATH)
 KERNEL_OPERATOR_TYPE=$(extract_kernel_operator_type $KERNEL_OPERATOR_TYPE_FLAG)
+if [ $? -ne 0 ]; then
+    error_message="Invalid KERNEL_OPERATOR_TYPE_FLAG value"
+    error_message+="'$KERNEL_OPERATOR_TYPE_FLAG'.\n"
+    error_message+="Valid values are:\n"
+    error_message+="- 'Standard', 'Stan', '0', or\n"
+    error_message+="- 'Brillouin', 'Bri', '1'."
+    termination_output "${error_message}"
+    exit 1
+fi
+log "INFO" "Kernel operator type flag is valid."
 QCD_BETA_VALUE=$(extract_QCD_beta_value "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY")
 LATTICE_DIMENSIONS=$(\
             extract_lattice_dimensions "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY")
@@ -175,30 +222,43 @@ non_iterable_parameters_values=$(\
 log "INFO" \
 "Non-iterable parameters values for execution:\n$non_iterable_parameters_values"
 
-# NON-ITERABLE PARAMETERS TO BE PRINTED
+# CHECK NON-ITERABLE PARAMETERS TO BE PRINTED
 
 # Check validity of LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED array
 validate_indices_array \
-LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED \
-NON_ITERABLE_PARAMETERS_NAMES_ARRAY || { echo "Exiting..."; exit 1; }
+    LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED \
+        NON_ITERABLE_PARAMETERS_NAMES_ARRAY || { echo "Exiting..."; exit 1; }
 log "INFO" "Valid elements passed to "\
 "'LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED' array."
 
-# ITERABLE PARAMETERS VALUES
+# Log list of parameter names to be printed in output filenames
+list_of_non_iterable_parameters_names_to_be_printed=""
+for index in "${LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED[@]}"; do
+    parameter_name="'${NON_ITERABLE_PARAMETERS_NAMES_ARRAY[$index]}'"
+    list_of_non_iterable_parameters_names_to_be_printed+=" ${parameter_name},"
+done
+list_of_non_iterable_parameters_names_to_be_printed="\
+${list_of_non_iterable_parameters_names_to_be_printed%,}."
+log "INFO" "List of non-iterable parameters names requested to "\
+"be printed with values in output "\
+"filenames:${list_of_non_iterable_parameters_names_to_be_printed}"
+
+# CHOOSE ITERABLE PARAMETERS NAMES ARRAY
 
 # Use current script's directory to choose among 6 iterable parameters arrays 
 overlap_operator_method_label=${OVERLAP_OPERATOR_METHOD}
-if [[ "${parameters_scan_script_directory}" == *"invert"* ]]; then
+if [[ "${MAIN_PROGRAM_IS_INVERT}" == "True" ]]; then
     overlap_operator_method_label+="_invert"
 fi
 iterable_parameters_names_array_name="${ITERABLE_PARAMETERS_NAMES_DICTIONARY[\
 "$overlap_operator_method_label"]}"
 log "INFO" "The iterable parameters names array that will be used is "\
-"$iterable_parameters_names_array_name."
+"'${iterable_parameters_names_array_name}'."
 
-declare -n iterable_parameters_names_array="$iterable_parameters_names_array_name"
+declare -n \
+iterable_parameters_names_array="$iterable_parameters_names_array_name"
 
-# VARYING ITERABLE PARAMETERS VALUES
+# ESTABLISH VARYING ITERABLE PARAMETERS SET OF VALUES
 
 # Before checking the validity of the VARYING_PARAMETERS_INDICES_LIST array,
 # check its length. Check first if it's empty
@@ -211,7 +271,7 @@ fi
 # Check then if VARYING_PARAMETERS_INDICES_LIST contains more than 3 indices
 if [ "${#VARYING_PARAMETERS_INDICES_LIST[@]}" -gt 3 ]; then
     ERROR_MESSAGE="'VARYING_PARAMETERS_INDICES_LIST' must contain at most 3 "\
-    "indices."
+"indices."
     termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
     echo "Exiting..."
     exit 1
@@ -221,74 +281,94 @@ validate_indices_array VARYING_PARAMETERS_INDICES_LIST \
         iterable_parameters_names_array || { echo "Exiting..."; exit 1; }
 log "INFO" "Valid elements passed to 'VARYING_PARAMETERS_INDICES_LIST' array."
 
-# Check values passed to varying parameters set of values variables
+# Create a reference to the range generator functions dictionary with a smaller
+# name for convenience
+declare -n \
+generators_dict="MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY"
+
+# Check values passed to those "*VARYING_PARAMETER_SET_OF_VALUES" variables
+# among the three that correspond to the VARYING_PARAMETERS_INDICES_LIST values
 varying_iterable_parameters_names_array=()
 for list_index in "${!VARYING_PARAMETERS_INDICES_LIST[@]}"; do
 
     # Extract the corresponding parameter name to the varying parameter index
-    varying_parameter_index=${VARYING_PARAMETERS_INDICES_LIST[$list_index]}
-    varying_parameter_name="${iterable_parameters_names_array[$varying_parameter_index]}"
+    varying_parameter_index="${VARYING_PARAMETERS_INDICES_LIST[$list_index]}"
+    varying_parameter_name="${iterable_parameters_names_array[\
+                                                    $varying_parameter_index]}"
     varying_iterable_parameters_names_array+=("$varying_parameter_name")
 
     # Extract the name of the varying parameter values array
-    varying_parameter_set_of_values_array_name=${VARYING_PARAMETERS_SET_OF_VALUES_ARRAYS_NAMES[$list_index]}
+    temp="${VARYING_PARAMETERS_SET_OF_VALUES_ARRAYS_NAMES[$list_index]}"
+    varying_parameter_set_of_values_array_name=$temp
 
+    # Check if a range of values was requested
     if is_range_string $varying_parameter_set_of_values_array_name; then
-        # Check if a range of values was requested
-        range_of_values_function="${MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY[$varying_parameter_name]}"
-
-        parameter_range_of_values_string=$(parameter_range_of_values_generator "$range_of_values_function" "$varying_parameter_set_of_values_array_name")
-        
+        log "INFO" "A range of values was requested for the "\
+"'${varying_parameter_set_of_values_array_name}' array."
+        # If a range was requested, then choose range of values generator
+        range_of_values_function="${generators_dict[$varying_parameter_name]}"
+        # Generate parameter values for the specified range using this function
+        parameter_range_of_values_string=$(parameter_range_of_values_generator \
+                            "$range_of_values_function"\
+                                "$varying_parameter_set_of_values_array_name")
+        # Change value of the "*VARYING_PARAMETER_SET_OF_VALUES" variable to
+        # the generated set of values
         declare -n array_to_modify="$varying_parameter_set_of_values_array_name"
-
         array_to_modify=($parameter_range_of_values_string)
 
-    elif validate_varying_parameter_values_array_new \
+        printed_array=$(print_array_limited array_to_modify 15)
+        log "INFO" "The set of values generated is:\n$printed_array."
+
+    elif validate_varying_parameter_values_array \
                         $varying_parameter_name \
                             $varying_parameter_set_of_values_array_name; then
-        # Or if a valid array of values was passed
-
-        log "INFO" "Valid set of values passed to "\
-        "'${varying_parameter_set_of_values_array_name}' array."
+        # If no range of values was requested, then a set of values is expected
+        log "INFO" "A valid set of values passed to "\
+"'${varying_parameter_set_of_values_array_name}' array."
     else
-        # Or in the case 
-
-        log "Error" "Not valid input to ${varying_parameter_set_of_values_array_name} array."
+        # If both tests fail, then input is rejected
+        log "Error" "Not valid input to "\
+"${varying_parameter_set_of_values_array_name} array."
     fi
 done
 
-# 
+# If the length of the VARYING_PARAMETERS_INDICES_LIST array is smaller than
+# three, then the corresponding "*VARYING_PARAMETER_SET_OF_VALUES" variables
+# must acquire a ("DUMMY_VALUE") for later use
 for ((index=${#VARYING_PARAMETERS_INDICES_LIST[@]}; index<3 ; index++)); do
-
     # Extract the name of the varying parameter values array
-    varying_parameter_set_of_values_array_name=${VARYING_PARAMETERS_SET_OF_VALUES_ARRAYS_NAMES[$index]}
-
+    temp="${VARYING_PARAMETERS_SET_OF_VALUES_ARRAYS_NAMES[$index]}"
+    varying_parameter_set_of_values_array_name=$temp
+    # Pass a single "DUMMY_VALUE" to "*VARYING_PARAMETER_SET_OF_VALUES" variable
     declare -n array_to_modify="$varying_parameter_set_of_values_array_name"
-
     array_to_modify=("DUMMY_VALUE")
+    log "INFO" "Array '${varying_parameter_set_of_values_array_name}' "\
+"has been assigned a single 'DUMMY_VALUE' element."
 done
 
-# CONSTANT ITERABLE PARAMETERS VALUES
+# UPDATE CONSTANT ITERABLE PARAMETERS VALUES
 
 # Check validity of passed elements of LIST_OF_UPDATED_CONSTANT_VALUES array
 validate_updated_constant_parameters_array LIST_OF_UPDATED_CONSTANT_VALUES \
-                                $iterable_parameters_names_array_name \
-                                    varying_iterable_parameters_names_array
+    $iterable_parameters_names_array_name \
+        varying_iterable_parameters_names_array \
+            || { echo "Exiting..."; exit 1; }
 log "INFO" "Passed elements to 'LIST_OF_UPDATED_CONSTANT_VALUES' array "\
 "are valid."
 # Update values of constant iterable parameters
-constant_parameters_update LIST_OF_UPDATED_CONSTANT_VALUES
+constant_parameters_update LIST_OF_UPDATED_CONSTANT_VALUES \
+                                            || { echo "Exiting..."; exit 1; }
 
-# Check validity of LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED
-# array
+# CHECK CONSTANT ITERABLE PARAMETERS TO BE PRINTED
+
+# Check LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED array
 validate_indices_array \
-LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED \
-$iterable_parameters_names_array_name || { echo "Exiting..."; exit 1; }
+    LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED \
+        $iterable_parameters_names_array_name || { echo "Exiting..."; exit 1; }
 # Check that no varying parameter indices were included
-compare_no_common_elements VARYING_PARAMETERS_INDICES_LIST LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED
-if [ $? -eq 1 ]; then
-    echo "Error: No varying parameters values can be printed as constant."
-fi
+compare_no_common_elements VARYING_PARAMETERS_INDICES_LIST \
+            LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED \
+                                            || { echo "Exiting..."; exit 1; }
 log "INFO" "Passed elements to "\
 "'LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED' array are valid."
 
@@ -298,18 +378,18 @@ if [ "$GAUGE_LINKS_CONFIGURATION_LABEL" == "0000000" ]; then
     # of the very first file inside the "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY"
     GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH=$(\
             find "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" -type f | head -n 1)
+    # And extract its label for possible later use
     GAUGE_LINKS_CONFIGURATION_LABEL=$(extract_configuration_label_from_file \
                                     "$GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH")
 fi
-
-
 
 ############################ TEMPLATE CONSTRUCTION #############################
 
 echo -e "\n\t\t** TEMPLATE CONSTRUCTION **\n" >> "$LOG_FILE_PATH"
 
-# Construct template's filename
+# CONSTRUCT OUTPUT FILES NAME
 
+# Attach labels and values of non-iterable parameters requested to be printed
 output_filename=""
 for index in "${LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED[@]}"; do
 
@@ -317,7 +397,6 @@ for index in "${LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED[@]}"; do
     parameter_value=${!NON_ITERABLE_PARAMETERS_NAMES_ARRAY[index]}
 
     if [ "$parameter_name" != "LATTICE_DIMENSIONS" ]; then
-
         parameter_label=${MODIFIABLE_PARAMETERS_LABELS_DICTIONARY[$parameter_name]}
         output_filename+="${parameter_label}"
         output_filename+="${parameter_value}_"
@@ -327,15 +406,11 @@ for index in "${LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED[@]}"; do
     fi
 done
 
+# Then do similarly for constant iterable parameters requested to be printed
 for index in "${LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED[@]}"; do
 
     parameter_name=${iterable_parameters_names_array[index]}
     parameter_value=${!iterable_parameters_names_array[index]}
-
-    # if [ "$parameter_name" == "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" ]; then
-    #     parameter_value=$(\
-    #   extract_configuration_label_from_file "$parameter_value")
-    # fi
 
     parameter_label=${MODIFIABLE_PARAMETERS_LABELS_DICTIONARY[$parameter_name]}
     output_filename+="${parameter_label}"
@@ -344,10 +419,12 @@ done
 
 # If value is of decimal number format, replace "." with "p"
 output_filename=$(modify_decimal_format "$output_filename")
-
+# Remove trailing "_"
 output_filename="${output_filename%_}"
 
-# Construct template's full file path
+# CONSTRUCT TEMPLATE PARAMETERS FILE
+
+PARAMETERS_FILES_DIRECTORY="$(realpath "${PARAMETERS_FILES_DIRECTORY}")"
 TEMPLATE_PARAMETERS_FILE_FULL_PATH="${PARAMETERS_FILES_DIRECTORY}"
 TEMPLATE_PARAMETERS_FILE_FULL_PATH+="/params_${output_filename}.ini"
 
@@ -359,216 +436,192 @@ if [ $? -ne 0 ]; then
     echo "Exiting..."
     exit 1
 fi
+log "INFO" "Parameters files template constructed."
 
-# Concatenate the iterable and non-iterable parameters names arrays into one
-constant_iterable_parameters_names_array=("${NON_ITERABLE_PARAMETERS_NAMES_ARRAY[@]}" "${iterable_parameters_names_array[@]}")
+# CONSTRUCT LIST OF CONSTANT MODIFIABLE PARAMETERS
 
-varying_parameters_names_array=()
-for index in "${VARYING_PARAMETERS_INDICES_LIST[@]}"; do
-    varying_parameters_names_array+=("${iterable_parameters_names_array[$index]}")
-done
+# Concatenate iterable and non-iterable parameters names arrays into one
+constant_parameters_names_array=("${NON_ITERABLE_PARAMETERS_NAMES_ARRAY[@]}" \
+                                        "${iterable_parameters_names_array[@]}")
 
+# Exclude varying iterable parameters names
 temp_array=()
-for element in "${constant_iterable_parameters_names_array[@]}"; do
-    # Check if the current element is not in the elements_to_remove array
-    if [[ ! " ${varying_parameters_names_array[@]} " =~ " $element " ]]; then
+for element in "${constant_parameters_names_array[@]}"; do
+    # Check if element is not in "varying_iterable_parameters_names_array" array
+    if [[ ! " ${varying_iterable_parameters_names_array[@]} " =~ " $element " ]];
+    then
         temp_array+=("$element")
     fi
 done
-constant_iterable_parameters_names_array=("${temp_array[@]}")
+constant_parameters_names_array=("${temp_array[@]}")
+
+# PARTIALLY FILLY UP TEMPLATE PARAMETERS FILE
 
 # Fill up the copied empty template with the values of the constant parameters
-for parameter in "${constant_iterable_parameters_names_array[@]}"; do
+for parameter in "${constant_parameters_names_array[@]}"; do
     # Get the value of the value of the parameter
     parameter_value="${!parameter}"
 
     if [ $parameter == "GAUGE_LINKS_CONFIGURATION_LABEL" ]; then
-
-        echo $parameter_value
-
+        # NOTE: "_GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH_" is the string to be
+        # replaced inside the empty parameters file with the gauge links
+        # configuration file full path, and not a string containing
+        # "GAUGE_LINKS_CONFIGURATION_LABEL" as might be expected
         parameter="GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH"
         parameter_value=$(match_configuration_label_to_file $parameter_value)
     fi
 
     # Use sed to perform the replacement
     sed -i "s@_${parameter}_@${parameter_value}@g" \
-                                        "$TEMPLATE_PARAMETERS_FILE_FULL_PATH"
+                                        "$TEMPLATE_PARAMETERS_FILE_FULL_PATH" \
+        || { 
+            error_message="Could not pass ${parameter} value to template file";
+            termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+            exit 1;
+            }
 done
+
+log "INFO" "Parameters files template was partially filled."
 
 ############################### JOBS SUBMISSION ################################
 
-echo -e "\n\t\t** JOBS SUBMISSION **\n\n" >> "$LOG_FILE_PATH"
+echo -e "\n\t\t** JOBS SUBMISSION **\n" >> "$LOG_FILE_PATH"
 
-# Path to generic job submissions script
-GENERIC_RUN_FULL_PATH="${PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH}"
-GENERIC_RUN_FULL_PATH+="/main_scripts/generic_run.sh"
-if [ ! -f "$GENERIC_RUN_FULL_PATH" ]; then
-    echo "Invalid path to generic job submissions script."
-    exit 1
+# CONSTRUCT PATH TO GENERIC JOB SUBMISSIONS SCRIPT
+
+GENERIC_SCRIPT_SCRIPT_FULL_PATH=$QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH
+GENERIC_SCRIPT_SCRIPT_FULL_PATH+="/main_scripts/generic_run.sh"
+if [ ! -f "$GENERIC_SCRIPT_SCRIPT_FULL_PATH" ]; then
+    error_message="Invalid path to generic job submissions script.";
+    termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+    exit 1;
 fi
+log "INFO" "Parameters files template was partially filled."
 
-# TODO: Check input
+# CHECK SBATCH OPTIONS
+
+check_mpi_geometry $MPI_GEOMETRY || { echo "Exiting..."; exit 1; }
 # The number of tasks is calculated automatically from the given MPI geometry
 NUMBER_OF_TASKS=($(convert_mpi_geometry_to_number_of_tasks $MPI_GEOMETRY))
+# is_integer $NUMBER_OF_NODES || {
+#         error_message="Invalid 'NUMBER_OF_NODES' input value.";
+#         termination_output "${error_message}";
+#         echo "Exiting...";exit 1;
+#     }
+# is_integer $NTASKS_PER_NODE || {
+#         error_message="Invalid 'NTASKS_PER_NODE' input value.";
+#         termination_output "${error_message}";
+#         echo "Exiting...";exit 1;
+#     }
+check_walltime $WALLTIME || { echo "Exiting..."; exit 1; }
 
-# Extract varying parameters labels:
-# Inner loop varying parameter label
-inner_loop_varying_parameter_index=${VARYING_PARAMETERS_INDICES_LIST[0]}
-inner_loop_varying_parameter_name=${iterable_parameters_names_array[\
-                                           $inner_loop_varying_parameter_index]}
-inner_loop_varying_parameter_label="${MODIFIABLE_PARAMETERS_LABELS_DICTIONARY[$inner_loop_varying_parameter_name]}"
+log "INFO" "sbatch options passed are valid."
 
-# Outer loop varying parameter label, if parameter was declared
-if [ "${#VARYING_PARAMETERS_INDICES_LIST[@]}" -ge 2 ]; then
-    outer_loop_varying_parameter_index=${VARYING_PARAMETERS_INDICES_LIST[1]}
-    outer_loop_varying_parameter_name=${iterable_parameters_names_array[\
-                                           $outer_loop_varying_parameter_index]}
-    outer_loop_varying_parameter_label="${MODIFIABLE_PARAMETERS_LABELS_DICTIONARY[$outer_loop_varying_parameter_name]}"
-fi
+# CONSTRUCT VARYING ITERABLE PARAMETERS LABELS ARRAY
 
-# Overall outer loop varying parameter label, if it was declared
-if [ "${#VARYING_PARAMETERS_INDICES_LIST[@]}" -eq 3 ]; then
-overall_outer_loop_varying_parameter_index=${VARYING_PARAMETERS_INDICES_LIST[2]}
-    overall_outer_loop_varying_parameter_name=${iterable_parameters_names_array[\
-                                $overall_outer_loop_varying_parameter_index]}
-    overall_outer_loop_varying_parameter_label="${MODIFIABLE_PARAMETERS_LABELS_DICTIONARY[$overall_outer_loop_varying_parameter_name]}"
-fi
+varying_iterable_parameters_labels_array=()
+for list_index in "${!VARYING_PARAMETERS_INDICES_LIST[@]}"; do
+    # Extract the corresponding parameter name to the varying parameter index
+    varying_parameter_name=${varying_iterable_parameters_names_array[$list_index]}
+    # Extract the corresponding parameter label to the varying parameter name
+    varying_parameter_label=${MODIFIABLE_PARAMETERS_LABELS_DICTIONARY[$varying_parameter_name]}
+    varying_iterable_parameters_labels_array+=("$varying_parameter_label")
+done
 
+# NESTED LOOPS OF THE VARYING_PARAMETER_SET_OF_VALUES
 
-
-# Construct parameters file and submit job for each combination of values
+base_filename="${output_filename}" 
+varying_parameters_values=()
 for overall_outer_loop_varying_parameter_value in \
                   "${OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES[@]}"; do
-    # Configure printed substring of the overall outer loop varying parameter
+
     if [ $overall_outer_loop_varying_parameter_value != "DUMMY_VALUE" ]; then
-        # if value if the configuration file path, extract label
-        if [ $overall_outer_loop_varying_parameter_label == "config" ]; then
-            printed_overall_outer_loop_varying_parameter_value="$overall_outer_loop_varying_parameter_value"
-            # $(\
-            # extract_configuration_label_from_file "$overall_outer_loop_varying_parameter_value")
-            overall_outer_loop_varying_parameter_name="GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH"
-            overall_outer_loop_varying_parameter_value=$(match_configuration_label_to_file "$overall_outer_loop_varying_parameter_value")
-        else
-            # If value is of decimal number format, replace "." with "p"
-            printed_overall_outer_loop_varying_parameter_value=$(\
-            modify_decimal_format "$overall_outer_loop_varying_parameter_value")
-        fi
-        # Construct substring to be printed
-        label=${overall_outer_loop_varying_parameter_label}
-        value=${printed_overall_outer_loop_varying_parameter_value}
-       overall_outer_loop_varying_parameter_label_with_value="_${label}${value}"
-    else
-        # Print nothing if overall outer loop varying parameter not declared
-        overall_outer_loop_varying_parameter_label_with_value=""
+        label="${varying_iterable_parameters_labels_array[2]}"
+        value="${overall_outer_loop_varying_parameter_value}"
+        overall_outer_loop_suffix="_${label}${value}"
     fi
 
     for outer_loop_varying_parameter_value in \
                           "${OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES[@]}"; do
-        # Configure printed substring of the outer loop varying parameter
+
         if [ $outer_loop_varying_parameter_value != "DUMMY_VALUE" ]; then
-            # if value if the configuration file path, extract label
-            if [ $outer_loop_varying_parameter_label == "config" ]; then
-                printed_outer_loop_varying_parameter_value="$outer_loop_varying_parameter_value"
-                # $(\
-                # extract_configuration_label_from_file "$outer_loop_varying_parameter_value")
-                outer_loop_varying_parameter_name="GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH"
-                outer_loop_varying_parameter_value=$(match_configuration_label_to_file "$outer_loop_varying_parameter_value")
-            else
-                # If value is of decimal number format, replace "." with "p"
-                printed_outer_loop_varying_parameter_value=$(\
-                modify_decimal_format "$outer_loop_varying_parameter_value")
-            fi
-            # Construct substring to be printed
-            label=${outer_loop_varying_parameter_label}
-            value=${printed_outer_loop_varying_parameter_value}
-            outer_loop_varying_parameter_label_with_value="_${label}${value}"
-        else
-            # Print nothing if outer loop varying parameter not declared
-            outer_loop_varying_parameter_label_with_value=""
+            label="${varying_iterable_parameters_labels_array[1]}"
+            value="${outer_loop_varying_parameter_value}"
+            outer_loop_suffix="_${label}${value}"
         fi
-        
+
         for inner_loop_varying_parameter_value in \
                           "${INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES[@]}"; do
-            # Configure printed substring of the inner loop varying parameter
-            # if value if the configuration file path, extract label
-            if [ $inner_loop_varying_parameter_label == "config" ]; then
-                printed_inner_loop_varying_parameter_value="$inner_loop_varying_parameter_value"
-                # $(\
-                # extract_configuration_label_from_file "$inner_loop_varying_parameter_value")
-                inner_loop_varying_parameter_name="GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH"
-                inner_loop_varying_parameter_value=$(match_configuration_label_to_file "$inner_loop_varying_parameter_value")
-            else
-                # If value is of decimal number format, replace "." with "p"
-                printed_inner_loop_varying_parameter_value=$(\
-                    modify_decimal_format "$inner_loop_varying_parameter_value")
-            fi
-            # Construct substring to be printed
-            label=${inner_loop_varying_parameter_label}
-            value=${printed_inner_loop_varying_parameter_value}
-            inner_loop_varying_parameter_label_with_value="_${label}${value}"
+            label="${varying_iterable_parameters_labels_array[0]}"
+            value="${inner_loop_varying_parameter_value}"
+            inner_loop_suffix="_${label}${value}"
 
-            # Construct the parameters file filename and full path. Use the name
-            # of the template file and append another substring at the end for 
-            # the values of the varying parameters
-        overall_suffix=${overall_outer_loop_varying_parameter_label_with_value}
-            outer_suffix=${outer_loop_varying_parameter_label_with_value}
-            inner_suffix=${inner_loop_varying_parameter_label_with_value}
-            appended_suffix="${overall_suffix}${outer_suffix}${inner_suffix}"
+            # CONSTRUCT OUTPUT FILES NAME
 
-            file_path=$TEMPLATE_PARAMETERS_FILE_FULL_PATH
-     filled_parameters_file_full_path="${file_path/.ini/${appended_suffix}.ini}"
+            output_filename="${base_filename}"
+            output_filename+="${overall_outer_loop_suffix}"
+            output_filename+="${outer_loop_suffix}"
+            output_filename+="${inner_loop_suffix}"
+            output_filename=$(modify_decimal_format $output_filename)
 
-            # Create parameters file from template with varying parameters lines
-            # still unfilled
-            cp ${TEMPLATE_PARAMETERS_FILE_FULL_PATH} \
-                                             ${filled_parameters_file_full_path}
+            # CONSTRUCT FILLED PARAMETERS FILE
 
-            # Fill in the varying parameters lines
-            # Inner loop 
-            parameter_name=$inner_loop_varying_parameter_name
-            parameter_value=$inner_loop_varying_parameter_value
-            sed -i "s@_${parameter_name}_@${parameter_value}@g" \
-                                             "$filled_parameters_file_full_path"
+            # Create a parameters file from template with varying parameters
+            # lines still unfilled
+            filled_parameters_file_full_path="${PARAMETERS_FILES_DIRECTORY}"
+            filled_parameters_file_full_path+="/params_${output_filename}.ini"
+            copy_file_and_check "${TEMPLATE_PARAMETERS_FILE_FULL_PATH}" \
+                                    "${filled_parameters_file_full_path}" \
+                                            || { echo "Exiting..."; exit 1; }
 
-            # Outer loop
-            if [ "$outer_loop_varying_parameter_value" != "DUMMY_VALUE" ]; then
-                parameter_name=$outer_loop_varying_parameter_name
-                parameter_value=$outer_loop_varying_parameter_value
-                sed -i "s@_${parameter_name}_@${parameter_value}@g" \
-                                             "$filled_parameters_file_full_path"
-            fi
+            # FILL IN PARAMETERS FILES
 
-            # Overall outer loop
-          if [ "$overall_outer_loop_varying_parameter_value" != "DUMMY_VALUE" ];
-             then
-                parameter_name=$overall_outer_loop_varying_parameter_name
-                parameter_value=$overall_outer_loop_varying_parameter_value
-                sed -i "s@_${parameter_name}_@${parameter_value}@g" \
-                                             "$filled_parameters_file_full_path"
-            fi
+            varying_parameters_values[0]="$inner_loop_varying_parameter_value"
+            varying_parameters_values[1]="$outer_loop_varying_parameter_value"
+            temp_value="$overall_outer_loop_varying_parameter_value"
+            varying_parameters_values[2]="$temp_value"
+
+            # Loop through indices and handle each parameter if it’s not a
+            # "DUMMY_VALUE"
+            for index in "${!varying_parameters_values[@]}"; do
+                parameter_value="${varying_parameters_values[$index]}"
+                if [ "$parameter_value" != "DUMMY_VALUE" ]; then
+                    parameter_name="${varying_iterable_parameters_names_array[\
+                    $index]}"
+                  if [ "$parameter_name" == "GAUGE_LINKS_CONFIGURATION_LABEL" ];
+                  then
+                       parameter_name="GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH"
+                        parameter_value=$(match_configuration_label_to_file \
+                                                            "$parameter_value")
+                    fi
+                    replace_string_in_file "$filled_parameters_file_full_path" \
+                                "_${parameter_name}_" "$parameter_value" \
+                                            || { echo "Exiting..."; exit 1; }
+                fi
+            done
 
             # For invert main progs, the binary solutions file full path needs
             # to be specified as well inside the parameters file
-            if [[ "$parameters_scan_script_directory" == *"invert"* ]]; then
+            if [[ "${MAIN_PROGRAM_IS_INVERT}" == "True" ]]; then
                 binary_solution_file_full_path=$BINARY_SOLUTION_FILES_DIRECTORY
-                binary_solution_file_full_path+="/solx12_"
-                binary_solution_file_full_path+="${output_filename}"
-                binary_solution_file_full_path+="${appended_suffix}.dat"
-                parameter_name="BINARY_SOLUTION_FILES_DIRECTORY"
+                binary_solution_file_full_path+="/${output_filename}.dat"
+                parameter_name="BINARY_INVERT_SOLUTION_FILE_PATH"
                 parameter_value=$binary_solution_file_full_path
-                sed -i "s@_${parameter_name}_@${parameter_value}@g" \
-                                             "$filled_parameters_file_full_path"
+                replace_string_in_file "$filled_parameters_file_full_path" \
+                                    "_${parameter_name}_" "${parameter_value}" \
+                                            || { echo "Exiting..."; exit 1; }
             fi
 
-            # USER INPUT: Set SLURM sbatch options
-            JOB_NAME="${appended_suffix}_${output_filename}"
+            # SET SLURM SBATCH OPTIONS
+
+            JOB_NAME="${output_filename}"
+            # Remove all underscores from the JOB_NAME variable
             JOB_NAME=$(echo "$JOB_NAME" | sed 's/_//g')
-            OUTPUT_FILE="${LOG_FILES_DIRECTORY}/${output_filename}"
-            OUTPUT_FILE+="${appended_suffix}.txt"
-            ERROR_FILE="${LOG_FILES_DIRECTORY}/${output_filename}"
-            ERROR_FILE+="${appended_suffix}.err"
+            OUTPUT_FILE="${LOG_FILES_DIRECTORY}/${output_filename}.txt"
+            ERROR_FILE="${LOG_FILES_DIRECTORY}/${output_filename}.err"
 
             # Submit job
+            # TODO: Add additional options
             SBATCH_OPTIONS="--job-name=${JOB_NAME} \
                             --error=${ERROR_FILE} \
                             --output=${OUTPUT_FILE} \
@@ -578,23 +631,26 @@ for overall_outer_loop_varying_parameter_value in \
                             --partition=${PARTITION_NAME}"
                             # --reservation=short \
 
-            sbatch ${SBATCH_OPTIONS} ${GENERIC_RUN_FULL_PATH} \
-                                ${MAIN_PROGRAM_EXECUTABLE} ${MPI_GEOMETRY} \
-                                    ${filled_parameters_file_full_path} \
-                                        ${NUMBER_OF_TASKS}
+            # sbatch ${SBATCH_OPTIONS} ${GENERIC_SCRIPT_SCRIPT_FULL_PATH} \
+            #                     ${MAIN_PROGRAM_EXECUTABLE} ${MPI_GEOMETRY} \
+            #                         ${filled_parameters_file_full_path} \
+            #                             ${NUMBER_OF_TASKS}
 
         done
     done
 done
+
+# SUCCESSFUL COMPLETION OUTPUT
 
 # Construct the final message
 final_message="${CURRENT_SCRIPT_NAME} processes complete!"
 # Print the final message
 echo "$final_message"
 
-echo -e "\n" >> "$LOG_FILE_PATH"
+# echo -e "\n" >> "$LOG_FILE_PATH"
 log "INFO" "${final_message}"
 
 echo -e $SCRIPT_TERMINATION_MESSAGE >> "$LOG_FILE_PATH"
-exit 1
 
+unset SCRIPT_TERMINATION_MESSAGE
+unset LOG_FILE_PATH
