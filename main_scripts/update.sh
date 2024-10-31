@@ -51,3 +51,5 @@ cd "$MAIN_SCRIPTS_DIRECTORY" || {
 
 # Run the setup script with the updated destination path
 ./setup.sh --path "$DESTINATION_DIRECTORY_PATH"
+
+unset CURRENT_SCRIPT_FULL_PATH
