@@ -61,24 +61,6 @@ setup_script_usage()
 }
 
 
-update_script_usage()
-{
-    # TODO:
-}
-
-
-usage_script_usage()
-{
-    # TODO:
-}
-
-
-scan_script_usage()
-{
-    # TODO:
-}
-
-
 print_list_of_parameters()
 {
 :   '
