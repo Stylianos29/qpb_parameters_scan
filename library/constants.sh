@@ -1,18 +1,31 @@
 #!/bin/bash
 
 
+# TODO: Write description
 ######################################################################
-# library/constants.sh - ?
+# usage.sh - Script for 
 #
-# This script contains a collection of global variables
-# 
-#
-# Author: Stylianos Gregoriou Date last modified: 22nd May 2024
-#
-# Usage: Source this script in other Bash scripts to access the custom functions
-#        defined herein.
 #
 ######################################################################
+
+
+# Prevent multiple sourcing of this script by exiting if CONSTANTS_SH is already
+# set. Otherwise, set CONSTANTS_SH to mark it as sourced.
+[[ -n "${CONSTANTS_SH}" ]] && return
+CONSTANTS_SH=1
+
+# Dependencies
+CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Source all custom functions scripts from "qpb_parameters_scan/library" using a
+# loop avoiding this way name-specific sourcing and thus potential typos
+for library_script in "$CURRENT_LIBRARY_SCRIPT_FULL_PATH";
+do
+    # Check if the current file in the loop is a regular file
+    if [ -f "$library_script" ]; then
+        source "$library_script"
+    fi
+done
+unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
 
 
 # NON-ITERABLE PARAMETERS
@@ -178,6 +191,7 @@ declare -A MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY
 MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY["OPERATOR_TYPE"]="check_operator_type"
 # Iterable parameters
 # Common to all
+MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY["GAUGE_LINKS_CONFIGURATION_LABEL"]="check_gauge_configurations_label"
 MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY["NUMBER_OF_VECTORS"]="is_positive_integer"
 MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY["APE_ITERATIONS"]="is_non_negative_integer"
 MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY["APE_ALPHA"]="is_positive_float"
@@ -229,222 +243,3 @@ MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY["KL_DIAGONAL_NUMBER"]
 MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY["SOLVER_INNER_EPSILON"]="general_range_of_values_generator"
 MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY["SOLVER_INNER_MAX_ITERATIONS"]="general_range_of_values_generator"
 MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY["SCALING_FACTOR"]="general_range_of_values_generator"
-
-
-###############################################################################
-
-# # TODO: Delete useless constants
-# WORKING_DIRECTORY="${HOME}/qpb_branches/Chebyshev_modified_eigenvalues/qpb/mainprogs/overlap-Chebyshev/ginsparg-wilson-relation"
-# PARAMETER_FILES_DIRECTORY="$WORKING_DIRECTORY/params_files"
-# # LOG_FILES_DIRECTORY="$WORKING_DIRECTORY/log_files"
-# SMEARED_CONFIGURATIONS_DIRECTORY="/onyx/qdata/Nf0_b6p20_L24T48-APE"
-
-# GAUGE_LINKS_CONFIGURATIONS_DIRECTORY="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE"
-
-# USEFUL LISTS
-
-# TODO: Create lists iterables and non-iterables
-
-
-
-# OVERLAP_OPERATOR_METHODS_ARRAY=("Bare" "KL" "Chebyshev")
-# KERNEL_OPERATOR_TYPES_ARRAY=("Standard" "Brillouin")
-
-#         # "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-# ITERABLE_PARAMETERS_NAMES_ARRAY=(
-#         "GAUGE_LINKS_CONFIGURATION_LABEL" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO_VALUE" \
-#         "KAPPA_VALUE" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT" \
-#         "NUMBER_OF_CHEBYSHEV_TERMS" \
-#         "KL_DIAGONAL_NUMBER" \
-#         "SOLVER_INNER_EPSILON" \
-#         "SOLVER_INNER_MAX_ITERATIONS" \
-#         "LANCZOS_EPSILON" \
-#         "LANCZOS_MAX_ITERATIONS" \
-#         "DELTA_MIN" \
-#         "DELTA_MAX" \
-#         "SCALING_FACTOR" \
-#         "SOLVER_EPSILON" \
-#         "SOLVER_MAX_ITERATIONS"
-#     )
-
-# BARE_ITERABLE_PARAMETERS_NAMES_ARRAY=(
-#         "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO_VALUE" \
-#         "KAPPA_VALUE" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT"
-#     )
-
-# BARE_INVERT_ITERABLE_PARAMETERS_NAMES_ARRAY=(
-#         "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO_VALUE" \
-#         "KAPPA_VALUE" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT" \
-#         "SOLVER_EPSILON" \
-#         "SOLVER_MAX_ITERATIONS"
-#     )
-
-# CHEBYSHEV_ITERABLE_PARAMETERS_NAMES_ARRAY=(
-#         "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO_VALUE" \
-#         "KAPPA_VALUE" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT" \
-#         "NUMBER_OF_CHEBYSHEV_TERMS" \
-#         "LANCZOS_EPSILON" \
-#         "LANCZOS_MAX_ITERATIONS" \
-#         "DELTA_MIN" \
-#         "DELTA_MAX"
-#     )
-
-# CHEBYSHEV_INVERT_ITERABLE_PARAMETERS_NAMES_ARRAY=(
-#         "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO_VALUE" \
-#         "KAPPA_VALUE" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT" \
-#         "NUMBER_OF_CHEBYSHEV_TERMS" \
-#         "LANCZOS_EPSILON" \
-#         "LANCZOS_MAX_ITERATIONS" \
-#         "DELTA_MIN" \
-#         "DELTA_MAX" \
-#         "SOLVER_EPSILON" \
-#         "SOLVER_MAX_ITERATIONS"
-#     )
-
-# KL_ITERABLE_PARAMETERS_NAMES_ARRAY=(
-#         "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO_VALUE" \
-#         "KAPPA_VALUE" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT" \
-#         "KL_DIAGONAL_NUMBER" \
-#         "SOLVER_INNER_EPSILON" \
-#         "SOLVER_INNER_MAX_ITERATIONS" \
-#         "SCALING_FACTOR"
-#     )
-
-# KL_INVERT_ITERABLE_PARAMETERS_NAMES_ARRAY=(
-#         "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO_VALUE" \
-#         "KAPPA_VALUE" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT" \
-#         "KL_DIAGONAL_NUMBER" \
-#         "SOLVER_INNER_EPSILON" \
-#         "SOLVER_INNER_MAX_ITERATIONS" \
-#         "SCALING_FACTOR" \
-#         "SOLVER_EPSILON" \
-#         "SOLVER_MAX_ITERATIONS"
-#     )
-
-
-# TYPICAL VALUES OF MODIFIABLE PARAMETERS
-
-# MODIFIABLE_PARAMETER_NAMES_ARRAY=("OPERATOR_TYPE" "CONFIG_LABEL" "APE_ITERS" "RHO" "NUMBER_OF_TERMS" "LANCZOS_EPSILON" "DELTA_MAX" "DELTA_MIN")
-
-# OPERATOR_METHODS_ARRAY=("Bare" "KL" "Chebyshev") # Bare must be the 1st element
-
-# OPERATOR_TYPES_ARRAY=("Standard" "Brillouin")
-
-# NON_SMEARED_CONFIG_LABELS_ARRAY=("002" "066" "130" "194" "258" "322" "386" "450" "514" "578" "642" "706")
-
-# LATTICE_DIMENSIONS_LIST=("24 12 12 12" "32 16 16 16" "40 20 20 20" "48 24 24 24")
-
-# CONFIG_LABEL="002"
-# CONFIGURATION_FILE_FULL_PATH="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE/conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200"
-
-# # These are exactly the parameters as they appear in the parameter files lines
-# # GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH="0000000" # Invalid value to indicate for the use of the very first file in the "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY"
-# GAUGE_LINKS_CONFIGURATION_LABEL="0000000"
-# LATTICE_DIMENSIONS="48 24 24 24"
-# NUMBER_OF_VECTORS="1"
-# APE_ITERATIONS="0"
-# APE_ALPHA="0.72"
-# RHO="1.0"
-# BARE_MASS="0.0"
-# CLOVER_TERM_COEFFICIENT="0"
-# OPERATOR_TYPE="Standard"
-# NUMBER_OF_CHEBYSHEV_TERMS=10
-# KL_DIAGONAL_NUMBER="1"
-# SOLVER_EPSILON="1e-8"
-# SOLVER_MAX_ITERATIONS="10000"
-# LANCZOS_EPSILON="1e-8"
-# LANCZOS_MAX_ITERATIONS="10000"
-# DELTA_MIN="1.0"
-# DELTA_MAX="1.0"
-# SCALING_FACTOR="1.0"
-
-
-
-# # Define the list of replacement variables
-# MODIFIABLE_PARAMETERS_LIST=(
-#         "LATTICE_DIMENSIONS" \
-#         "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" \
-#         "NUMBER_OF_VECTORS" \
-#         "APE_ITERATIONS" \
-#         "APE_ALPHA" \
-#         "RHO" \
-#         "BARE_MASS" \
-#         "CLOVER_TERM_COEFFICIENT" \
-#         "OPERATOR_TYPE" \
-#         "NUMBER_OF_CHEBYSHEV_TERMS" \
-#         "KL_DIAGONAL_NUMBER" \
-#         "SOLVER_EPSILON" \
-#         "SOLVER_MAX_ITERATIONS" \
-#         "LANCZOS_EPSILON" \
-#         "LANCZOS_MAX_ITERATIONS" \
-#         "SOLVER_INNER_EPSILON" \
-#         "SOLVER_INNER_MAX_ITERATIONS" \
-#         "DELTA_MIN" \
-#         "DELTA_MAX" \
-#         "SCALING_FACTOR"
-#     )
-
-
-
-# MODIFIABLE_PARAMETERS_LABELS_LIST=(
-#         "LatticeDims" \
-#         "config" \
-#         "NVecs" \
-#         "APEiters" \
-#         "APEalpha" \
-#         "rho" \
-#         "m" \
-#         "cSW" \
-#         "OPERATOR_TYPE" \
-#         "N" \
-#         "n" \
-#         "EpsCG" \
-#         "CGMaxIters" \
-#         "EpsLanczos" \
-#         "LanczosMaxIters" \
-#         "dMin" \
-#         "dMax" \
-#         "mu"
-#     )

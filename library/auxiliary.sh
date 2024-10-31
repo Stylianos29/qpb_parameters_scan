@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 
-######################################################################
+################################################################################
 # auxiliary.sh
 #
 # Description:
@@ -28,45 +28,26 @@
 # Note:
 # - For unit-tested functions, refer to other library scripts in the "library" 
 #   directory.
-######################################################################
+################################################################################
 
 
-CURRENT_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$CURRENT_SCRIPT_FULL_PATH/constants.sh"
+# Prevent multiple sourcing of this script by exiting if AUXILIARY_SH_INCLUDED 
+# is already set. Otherwise, set AUXILIARY_SH_INCLUDED to mark it as sourced.
+[[ -n "${AUXILIARY_SH_INCLUDED}" ]] && return
+AUXILIARY_SH_INCLUDED=1
 
-
-setup_script_usage()
-{
-:   '
-    Description: Displays usage information for the setup script and exits. 
-    This function outlines the available options and their descriptions to 
-    assist the user in running the script correctly.
-
-    Parameters: 
-    - None.
-
-    Returns:
-    - Prints the usage information.
-    - Exits the script with a status code of 1 to indicate incorrect usage 
-      or when the user explicitly requests usage information.
-
-    Example Usage:
-        # If the user runs the script without the required arguments
-        setup_script_usage
-
-    Notes:
-    - This function is designed to be called when the user runs the setup.sh 
-      script incorrectly or requests usage information with the `-u` or 
-      `--usage` flag.
-    '
-
-    echo "Usage: $0 -p <directory> [--path <directory>] [-u|--usage]"
-    echo "Options:"
-    echo "  -p, --path   Specify the destination directory"
-    echo "  -u, --usage  Display usage information"
-    
-    exit 1
-}
+# Source dependencies
+CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Source all custom functions scripts from "qpb_parameters_scan/library" using a
+# loop avoiding this way name-specific sourcing and thus potential typos
+for library_script in "$CURRENT_LIBRARY_SCRIPT_FULL_PATH";
+do
+    # Check if the current file in the loop is a regular file
+    if [ -f "$library_script" ]; then
+        source "$library_script"
+    fi
+done
+unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
 
 
 log()
@@ -113,6 +94,22 @@ log()
 }
 
 
+set_script_termination_message() {
+    # Accepts a variable name as an argument
+    local -n termination_message_ref="$1"
+    
+    # Check if the argument variable is empty
+    if [ -z "$termination_message_ref" ]; then
+        # Use the global variable if set, or default message otherwise
+        if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
+            termination_message_ref="$SCRIPT_TERMINATION_MESSAGE"
+        else
+            termination_message_ref="\n\t\t SCRIPT EXECUTION TERMINATED"
+        fi
+    fi
+}
+
+
 termination_output()
 {
 :   '
@@ -143,351 +140,306 @@ termination_output()
     
     local error_message="$1"
     local script_termination_message="$2"
+    set_script_termination_message script_termination_message
 
-    echo "Error: $error_message"
+    echo -e "Error: $error_message"
+    echo "Exiting..."
     log "ERROR" "$error_message"
     echo -e "$script_termination_message" >> "$LOG_FILE_PATH"
 }
 
 
-check_if_directory_exists()
+exclude_elements_from_array()
 {
 :   '
-    Description: Checks if a directory exists at the specified path. If the 
-    directory does not exist, it prints a user-defined error message, 
-    optionally appending a termination message, and exits the script with a 
-    status code of 1.
+    Function: exclude_elements_from_array
+    Description: Returns a new array with elements excluded based on the 
+    provided indices array. The original main array remains unmodified.
 
     Parameters:
-    - directory_path (string): The full path to the directory to check.
-    - error_message (string): The error message to print if the directory 
-      does not exist.
-    - script_termination_message (string, optional): A message to be appended 
-      to the log file upon termination. If not provided, a global variable 
-      SCRIPT_TERMINATION_MESSAGE will be used if set, or a default message 
-      will be assigned.
+    - main_array_name (string): The name of the array from which elements will 
+      be excluded. This array is passed by name.
+    - indices_array_name (string): The name of the array containing the indices 
+      of elements to be excluded. This array is passed by name, and each index 
+      must be a non-negative integer corresponding to a valid index in the 
+      main array.
 
-    Returns: None
-    Exits: Exits the script with status 1 if the directory does not exist, after 
-    logging the error.
-
-    This function ensures that required directories are present before 
-    proceeding with further script execution. It enhances error handling by 
-    allowing for a customizable termination message.
+    Returns:
+    - A new array with the specified elements removed.
 
     Usage Example:
-        # Define the directory path and error message
-        destination_directory="/path/to/destination_directory"
-        error_message="Invalid destination directory path. Check again."
-        
-        # Call the function to check if the directory exists
-        check_if_directory_exists "$destination_directory" "$error_message"
-    '
-
-    local directory_path="$1"
-    local error_message="$2"
-    local script_termination_message="$3"
-
-    # Check if the 3rd argument was passed
-    if [ -z "$script_termination_message" ]; then
-        # If no 3rd argument, check if global variable is not empty
-        if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
-            script_termination_message="$SCRIPT_TERMINATION_MESSAGE"
-        else
-            # If global variable is empty, assign default message
-            script_termination_message="\n\t\t SCRIPT EXECUTION TERMINATED"
-        fi
-    fi
-
-    if [ ! -d "$directory_path" ]; then
-        termination_output "${error_message}" "${script_termination_message}"
-        echo "Exiting..."
-        exit 1
-    fi
-}
-
-
-check_if_file_exists()
-{
-:   '
-    Description: Checks if a file exists at the specified path. If the file 
-    does not exist, it prints a user-defined error message, optionally 
-    appending a termination message, and exits the script with a status code 
-    of 1.
-
-    Parameters:
-    - file_path (string): The full path to the file to check.
-    - error_message (string): The error message to print if the file does 
-      not exist.
-    - script_termination_message (string, optional): A message to be appended 
-      to the log file upon termination. If not provided, a global variable 
-      SCRIPT_TERMINATION_MESSAGE will be used if set, or a default message 
-      will be assigned.
-
-    Returns: None
-    Exits: Exits the script with status 1 if the file does not exist, after 
-    logging the error.
-
-    This function ensures that required files are present before proceeding 
-    with further script execution. It enhances error handling by allowing for 
-    a customizable termination message.
-
-    Usage Example:
-        # Define the file path and error message
-        empty_parameters_file="/path/to/empty_parameters_file"
-        error_message="Invalid empty parameters file path. Check again."
-        
-        # Call the function to check if the file exists
-        check_if_file_exists "$empty_parameters_file" "$error_message"
-    '
-
-    local file_path="$1"
-    local error_message="$2"
-    local script_termination_message="$3"
-
-    # Check if the 3rd argument was passed
-    if [ -z "$script_termination_message" ]; then
-        # If no 3rd argument, check if global variable is not empty
-        if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
-            script_termination_message="$SCRIPT_TERMINATION_MESSAGE"
-        else
-            # If global variable is empty, assign default message
-            script_termination_message="\n\t\t SCRIPT EXECUTION TERMINATED"
-        fi
-    fi
-
-    # Check if the file exists
-    if [ ! -f "$file_path" ]; then
-        termination_output "${error_message}" "${script_termination_message}"
-        echo "Exiting..."
-        exit 1
-    fi
-}
-
-
-print_list_of_parameters()
-{
-:   '
-    Function: print_list_of_parameters
-    Description: This function prints a list of parameters and their
-    corresponding values from a given array. Optionally, it can print the list 
-    with or without indices based on the "-noindices" option.
-
-    Parameters:
-    - parameter_names_array_name (string): The name of the array (passed as a 
-      string) that contains the parameter names to be printed. The array name 
-      is validated before being used as a reference.
-    - options (string, optional): An optional argument, "-noindices", that when 
-      included, suppresses printing indices and prints empty spaces instead.
-
-    Returns: None
-    Exits: Exits the script with status 1 if the provided array name is invalid.
-
-    This function is useful for displaying parameters and their values, with 
-    the option to format the output either with indices or without.
-
-    Usage:
-    print_list_of_parameters parameter_names_array_name [-noindices]
-
-    Example:
-    NON_ITERABLE_PARAMETERS_NAMES_ARRAY=("param1" "param2")
-    ITERABLE_PARAMETERS_NAMES_ARRAY=("paramA" "paramB")
-
-    # Example 1: Printing with indices
-    print_list_of_parameters NON_ITERABLE_PARAMETERS_NAMES_ARRAY
-
-    # Example 2: Printing without indices
-    print_list_of_parameters ITERABLE_PARAMETERS_NAMES_ARRAY -noindices
-
-    Sample Output:
-    0  : param1=value1
-    1  : param2=value2
-
-    With "-noindices":
-       : paramA=valueA
-       : paramB=valueB
+    MAIN_ARRAY=("apple" "banana" "cherry" "date")
+    INDICES_TO_REMOVE=(1 3)
+    reduced_array=$(exclude_elements_from_array MAIN_ARRAY INDICES_TO_REMOVE)
+    echo "${reduced_array[@]}"  # Output: "apple cherry"
 
     Notes:
-    - The function validates that the first argument is a valid array name
-      before using it as a reference.
-    - This function uses a loop to iterate through the provided array and prints 
-      each parameter along with its value.
-    - If the optional "-noindices" argument is provided, the function will print 
-      empty spaces instead of indices.
+    - The function does not modify the original main array. Instead, it returns 
+      a new array with the specified elements excluded.
+    - Indices must be valid non-negative integers, and they must refer to valid 
+      positions in the main array.
+    - The function sorts indices in descending order to avoid shifting issues 
+      during removal.
     '
-    
-    local parameter_names_array_name=$1  # Store the first argument as a string
-    if ! declare -p "$parameter_names_array_name" &>/dev/null; then
-        echo "Error: Invalid list of parameters array name "\
-                                        "'$parameter_names_array_name'."
-        echo "Exiting..."
-        exit 1
-    fi
-    # Use name reference after validation
-    local -n parameter_names_array="$parameter_names_array_name"
 
-    local noindices=false
-    if [[ "$2" == "-noindices" ]]; then
-        noindices=true
-    fi
+    local main_array_name="$1"         # Name of the main array
+    local indices_array_name="$2"      # Name of the indices array
+    local -n main_array="$main_array_name"   # Reference to the main array
+    local -n indices_array="$indices_array_name" # Reference to the indices array
+    local result_array=()              # New array to store the reduced elements
 
-    local index=0
-    for parameter_name in "${parameter_names_array[@]}"; do
-        parameter_value="${!parameter_name}"
-        if [ "$noindices" = true ]; then
-            printf "# - %s=%s\n" "$parameter_name" "$parameter_value"
+    # Sort the indices array in descending order to avoid shifting issues
+    mapfile -t indices_array < <(for i in "${indices_array[@]}"; do echo "$i"; done | sort -rn)
+
+    # Create a copy of the main array
+    result_array=("${main_array[@]}")
+
+    # Remove elements at the specified indices
+    for index in "${indices_array[@]}"; do
+        if (( index >= 0 && index < ${#main_array[@]} )); then
+            unset "result_array[$index]"
         else
-            printf "# %2d : %s=%s\n" "$index" "$parameter_name" \
-                                                            "$parameter_value"
+            echo "Error: Index '$index' is out of range for array '$main_array_name'."
+            return 1
         fi
-        ((index++))
     done
 
-    echo # Add new line
+    # Compact the array to remove gaps created by 'unset'
+    result_array=("${result_array[@]}")
+
+    # Print the resulting array with excluded elements
+    echo "${result_array[@]}"
+    
+    return 0
 }
 
 
-write_list_of_parameters_to_file()
+exclude_elements_from_modifiable_parameters_list_by_index()
 {
 :   '
-    Function: write_list_of_parameters_to_file
-    Description: Inserts the output of the print_list_of_parameters function 
-    into a specified file below a given search line. The function captures 
-    the formatted output of parameters and appends it to the file, allowing 
-    for the customization of how parameters are printed based on the provided 
-    options.
-
+    Function to construct a subarray by excluding specified indices from the
+     global array MODIFIABLE_PARAMETERS_LIST.
+    This function takes a space-separated list of indices as its argument. It 
+    iterates over the global array MODIFIABLE_PARAMETERS_LIST and constructs a
+     new subarray that excludes the elements at the specified indices.
     Parameters:
-    - parameter_names_array_name (string): The name of the array (passed as a 
-      string) that contains the parameter names to be printed. This name is 
-      validated before being used as a reference.
-    - search_line (string): The line in the file below which the parameters 
-      output will be inserted.
-    - file (string): The path to the file where the parameters will be written.
-    - flag (string, optional): An optional argument that can include 
-      "-noindices". If provided, this flag suppresses printing of indices and 
-      prints empty spaces instead.
-
-    Returns: None
-    Exits: Exits the script with status 1 if the provided array name is invalid.
-
-    This function is useful for dynamically updating files. It ensures that the 
-    array name is valid before attempting to print the parameters and utilizes 
-    a temporary file to avoid issues with modifying the file while reading from 
-    it.
-
-    Usage Example:
-        write_list_of_parameters_to_file NON_ITERABLE_PARAMETERS_NAMES_ARRAY 
-        "List of parameters:" "config.txt" "-noindices"
-
+      $1 - A space-separated list of indices to exclude.
+    Returns:
+      The subarray with the specified elements removed, printed as a 
+      space-separated string.
+    Usage - Example:
+      indices_to_exclude="1 3"
+      exclude_indices_from_modifiable_parameters_list "${indices_to_exclude[@]}"
     Notes:
-    - The function validates that the first argument is a valid array name 
-      before using it as a reference.
-    - A temporary file is created to store the modified content before moving 
-      it back to the original file to ensure data integrity during the update 
-      process.
-    - This function relies on the print_list_of_parameters function to format 
-      the parameter names and their corresponding values.
-    '
-    
-    local parameter_names_array_name=$1  # Store the first argument as a string
-    local search_line="$2"               # Line to search for in the file
-    local file="$3"                      # File where the output will be written
-    local flag="$4"                      # Optional "-noindices" flag
-
-    # Step 0: Validate the array name before using it as a reference
-    if ! declare -p "$parameter_names_array_name" &>/dev/null; then
-        echo "Error: Invalid list of parameters array name "\
-                                        "'$parameter_names_array_name'."
-        echo "Exiting..."
-        exit 1
-    fi
-  
-    # Use name reference after validation
-    local -n parameter_names_array="$parameter_names_array_name"  
-
-    # Step 1: Capture the output of the print_list_of_parameters function
-    local parameters_output=$(print_list_of_parameters \
-                                          "$parameter_names_array_name" "$flag")
-
-    # Step 2: Create a temporary file for the modified content
-    local tmp_file=$(mktemp)
-
-    # Step 3: Use sed to insert the parameters_output below the search_line
-    sed "/${search_line}/r /dev/stdin" "$file" > "$tmp_file" \
-                                                        <<< "$parameters_output"
-
-    # Step 4: Move the temporary file back to the original file
-    mv "$tmp_file" "$file"
-}
-
-
-insert_message()
-{
-:   '
-    Description: Inserts a specified warning message into a script file after 
-    a specified line.
-
-    Parameters:
-    - script_file (string): The full path to the script file where the 
-      warning message will be inserted.
-    - target_line (string): The line after which the warning message should 
-      be inserted.
-    - warning_message (string): The warning message to be inserted into the 
-      script.
-
-    Returns: None
-
-    This function reads the original script file line by line and inserts the 
-    warning message immediately after the line that contains the specified 
-    target line as a substring. It creates a temporary file to store the 
-    modified content and then moves this temporary file back to the original 
-    script file to make the changes effective.
-
-    Usage Example:
-      # Define the script file path
-      script_file_path="/path/to/script.sh"
-  
-      # Define target line after which the warning message should be inserted
-      target_line="#!/bin/bash -l"
-  
-      # Define the multi-line warning message
-      WARNING_MESSAGE=$'# This script is auto-generated.\n'
-  
-      # Call the function to append the warning message, quoting the target line
-      insert_message "$script_file_path" "$target_line" "$WARNING_MESSAGE"
-    
-    Notes:
-    - This function assumes that the target line is unique within the script 
-      file. If the target line appears multiple times, the warning message 
-      will be inserted after each occurrence.
-    - The function uses `shift` to handle multi-line strings and spaces in the 
-      `target_line` argument, ensuring the entire `warning_message` is treated 
-      as a single argument.
-    - The `-e` option in `echo` enables interpretation of backslash escapes, 
-      ensuring that newline characters in the `warning_message` are processed 
-      correctly.
+      - This function assumes that the global array MODIFIABLE_PARAMETERS_LIST 
+      is already defined.
+      - The indices in the list to exclude should be valid indices of the global
+       array MODIFIABLE_PARAMETERS_LIST.
+      - The function uses string comparison to ensure accurate matching of 
+      indices.
     '
 
-    local script_file="$1"
-    local target_line="$2"
-    shift 2
-    local warning_message="$*"
+    local indices_to_be_excluded_list=("$@")
+    local modifiable_parameters_sublist=()
 
-    # Create a temporary file to store the modified content
-    local temporary_file=$(mktemp)
-    
-    # Read the original script file line by line
-    while IFS= read -r line; do
-        # Insert the warning message right after the target line
-        if [[ "$line" == *"$target_line"* ]]; then
-            echo "$line" >> "$temporary_file"
-            echo -e "$warning_message" >> "$temporary_file"
-        else
-            echo "$line" >> "$temporary_file"
+    for index in "${!MODIFIABLE_PARAMETERS_LIST[@]}"; do
+        # Spaces are necessary around $i in " $i " ensure that the index is 
+        # matched exactly, preventing partial matches with other indices.
+        if [[ ! " ${indices_to_be_excluded_list[@]} " =~ " ${index} " ]]; then
+            modifiable_parameters_sublist+=(\
+                                        "${MODIFIABLE_PARAMETERS_LIST[$index]}")
         fi
-    done < "$script_file"
+    done
+
+    echo "${modifiable_parameters_sublist[@]}"
+}
+
+
+compare_no_common_elements()
+{
+    local -n array1="$1"    # First array (non-negative integers)
+    local -n array2="$2"    # Second array (non-negative integers)
+
+    local -A elements_seen  # Associative array to track elements
+    local common_elements=() # Array to store common elements
+
+    # Mark all elements in array1
+    for elem in "${array1[@]}"; do
+        elements_seen[$elem]=1
+    done
+
+    # Check for common elements in array2
+    for elem in "${array2[@]}"; do
+        if [[ -n "${elements_seen[$elem]}" ]]; then
+            common_elements+=("$elem")  # Add common element to list
+        fi
+    done
+
+    # If common elements were found, print an error
+    if [ ${#common_elements[@]} -gt 0 ]; then
+        error_message="No varying parameters values can be printed as constant."
+        termination_output "${error_message}" "${SCRIPT_TERMINATION_MESSAGE}"
+        return 1
+    fi
+
+    return 0
+}
+
+
+modify_decimal_format() {
+    local input_string="$1"
+    local modified_string="${input_string//./p}"
+    echo "$modified_string"
+}
+
+
+modify_decimal_format_old() {
+:   '
+    Function to check if a value contains a decimal number and modify its format.
+    Parameters:
+        $1 - The string to be checked and modified
+    Returns:
+        Modified string with the decimal point in the number replaced by "p" 
+        if a decimal number is found in the string.
+    Usage:
+        parameter_value=$(modify_decimal_format "$parameter_value")
+    Explanation:
+        - This function searches for a decimal number in the input string.
+        - If found, it replaces the decimal point in the number with "p".
+        - If no decimal number is found, the function returns the original string.
+    '
+
+    local value="$1"
+
+    # Use regex to match a decimal number in the string and replace only the decimal point
+    echo "$value" | sed -E 's/([0-9]+)\.([0-9]+)/\1p\2/'
+}
+
+
+modify_decimal_format_old_old()
+{
+:   '
+    Function to check if a value is a decimal number and modify its format.
+    Parameters:
+        $1 - The value to be checked and modified
+    Returns:
+        Modified value with the decimal point replaced by "p" if it is a decimal
+         number, otherwise returns the original value.
+    Usage:
+        parameter_value=$(modify_decimal_format "$parameter_value")
+    Explanation:
+        - This function takes one argument and checks if it is a decimal number.
+        - A decimal number is defined as an optional minus sign, followed by 
+          one or more digits, followed optionally by a decimal point and one 
+          or more digits.
+        - If the value matches the pattern, the function replaces the decimal 
+          point with the letter "p".
+        - If the value does not match the pattern, the function returns the 
+          original value unchanged.
+    '
+
+    local value="$1"
+
+    if [[ $value =~ ^-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?$ ]]; then
+        echo "${value//./p}"
+    else
+        echo "$value"
+    fi
+}
+
+
+trim_whitespace()
+{
+:   '
+    Function: trim_whitespace
+
+    Description:
+    Trims leading and trailing whitespace from a given string. This function 
+    is useful for cleaning up strings that may have extra spaces at the 
+    beginning or end, which can interfere with string comparisons and other 
+    operations.
+
+    Parameters:
+    1. var: The input string that needs to be trimmed of leading and trailing 
+    whitespace.
+
+    Output:
+    Prints the trimmed string without leading or trailing whitespace.
+
+    Usage:
+    trimmed_string=$(trim_whitespace "  example string  ")
+
+    Example:
+    input_string="   some text with spaces   "
+    trimmed_string=$(trim_whitespace "$input_string")
+    # trimmed_string now contains "some text with spaces"
+
+    Notes:
+    - This function uses Bash string manipulation techniques to remove 
+    whitespace.
+    - The function does not modify the original string but outputs the trimmed 
+    result.
+    '
+
+    local var="$*"
     
-    # Move the modified content back to the original script file
-    mv "$temporary_file" "$script_file"
+    # Remove leading and trailing whitespace
+    var="${var#"${var%%[![:space:]]*}"}"
+    var="${var%"${var##*[![:space:]]}"}"
+    
+    echo -n "$var"
+}
+
+
+find_index()
+{
+:   '
+    Function: find_index
+    This function searches for an element in a given array and returns the 
+    index of the first occurrence of that element.
+
+    Parameters:
+    - element (string): The element to search for in the array.
+    - array (array): The array in which to search for the element. The array 
+      should be passed as individual arguments.
+
+    Returns:
+    - If the element is found, the function prints the index of the first 
+      occurrence of the element and returns 0.
+    - If the element is not found, the function prints -1 and returns 1.
+
+    Usage:
+    find_index element "${array[@]}"
+
+    Example:
+    my_array=("apple" "banana" "cherry" "date")
+    element_to_find="cherry"
+    index=$(find_index "$element_to_find" "${my_array[@]}")
+
+    if [[ $index -ne -1 ]]; then
+        echo "Element '$element_to_find' found at index $index."
+    else
+        echo "Element '$element_to_find' not found in the array."
+    fi
+
+    Notes:
+    - This function uses a loop to iterate through the array and compare each 
+      element with the target element.
+    - The function prints the index of the first match found and returns 0.
+    - If no match is found, the function prints -1 and returns 1.
+    '
+    
+    local element="$1"
+    shift
+    local array=("$@")
+
+    for i in "${!array[@]}"; do
+        if [[ "${array[$i]}" == "$element" ]]; then
+            echo "$i"
+            return 0
+        fi
+    done
+
+    echo "-1"  # Return -1 if the element is not found
+    return 1
 }

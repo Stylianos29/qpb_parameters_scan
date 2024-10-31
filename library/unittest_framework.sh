@@ -17,8 +17,27 @@
 ######################################################################
 
 
-assert()
-{
+# Prevent multiple sourcing of this script by exiting if
+# UNITTEST_FRAMEWORK_SH_INCLUDED is already set. Otherwise, set
+# UNITTEST_FRAMEWORK_SH_INCLUDED to mark it as sourced.
+[[ -n "${UNITTEST_FRAMEWORK_SH_INCLUDED}" ]] && return
+UNITTEST_FRAMEWORK_SH_INCLUDED=1
+
+# Source dependencies
+CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Source all custom functions scripts from "qpb_parameters_scan/library" using a
+# loop avoiding this way name-specific sourcing and thus potential typos
+for library_script in "$CURRENT_LIBRARY_SCRIPT_FULL_PATH";
+do
+    # Check if the current file in the loop is a regular file
+    if [ -f "$library_script" ]; then
+        source "$library_script"
+    fi
+done
+unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
+
+
+assert() {
 :   '
     Function to assert the equality of two single values
     Usage: assert $value1 $value2
@@ -52,8 +71,7 @@ assert()
 }
 
 
-negative_assert()
-{
+negative_assert() {
 :   '
     Function: negative_assert
     Description: Asserts the opposite condition of the given command.
@@ -85,8 +103,7 @@ negative_assert()
 }
 
 
-multiple_assert()
-{
+multiple_assert() {
 :   '
     Extension of the assert() function
     Description: This function iterates through two passed arrays and compares 
@@ -134,8 +151,7 @@ multiple_assert()
 }
 
 
-array_assert()
-{
+array_assert() {
 :   '
     Function to assert the equality of two arrays
     Usage: array_assert array1[@] array2[@]
@@ -180,8 +196,7 @@ array_assert()
 }
 
 
-unittest()
-{
+unittest() {
     : '
     Function to run unit tests for functions that start with "test_" and report 
     the results.

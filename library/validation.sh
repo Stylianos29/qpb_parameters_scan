@@ -1,18 +1,10 @@
 #!/bin/bash
 
 
+# TODO: Write description
 ######################################################################
-# library/constants.sh - ?
+# usage.sh - Script for 
 #
-# This script contains a collection of custom functions to
-# check and analyze parameters, not related to their nature?
-# functions directly related to the user's input
-# 
-#
-# Author: Stylianos Gregoriou Date last modified: 22nd May 2024
-#
-# Usage: Source this script in other Bash scripts to access the custom functions
-#        defined herein.
 #
 ######################################################################
 
@@ -22,6 +14,7 @@
 [[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
 INTERFACE_SH_INCLUDED=1
 
+# Source dependencies
 CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source all custom functions scripts from "qpb_parameters_scan/library" using a
 # loop avoiding this way name-specific sourcing and thus potential typos
@@ -34,211 +27,131 @@ do
 done
 unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
 
-# TODO: Default SCRIPT_TERMINATION_MESSAGE
-# # Check if the 3rd argument was passed
-# if [ -z "$script_termination_message" ]; then
-#     # If no 3rd argument, check if global variable is not empty
-#     if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
-#         script_termination_message="$SCRIPT_TERMINATION_MESSAGE"
-#     else
-#         # If global variable is empty, assign default message
-#         script_termination_message="\n\t\t SCRIPT EXECUTION TERMINATED"
-#     fi
-# fi
 
-
-extract_overlap_operator_method()
+check_if_directory_exists()
 {
 :   '
-    Description: This function extracts the overlap operator method from a 
-    given file or directory path. It checks for specific substrings related to 
-    the operator method ("Chebyshev" or "KL") and echoes the corresponding 
-    method. If no match is found, it defaults to "Bare."
+    Description: Checks if a directory exists at the specified path. If the 
+    directory does not exist, it prints a user-defined error message, 
+    optionally appending a termination message, and exits the script with a 
+    status code of 1.
 
     Parameters:
-    - path (string): The full path that is checked for specific substrings to 
-      identify the overlap operator method.
+    - directory_path (string): The full path to the directory to check.
+    - error_message (string): The error message to print if the directory 
+      does not exist.
+    - script_termination_message (string, optional): A message to be appended 
+      to the log file upon termination. If not provided, a global variable 
+      SCRIPT_TERMINATION_MESSAGE will be used if set, or a default message 
+      will be assigned.
 
-    Returns:
-    - "Chebyshev" if the path contains "Chebyshev", "chebyshev", or "CHEBYSHEV".
-    - "KL" if the path contains "KL" or "kl".
-    - "Bare" if none of the above substrings are found.
+    Returns: None
+    Exits: Exits the script with status 1 if the directory does not exist, after 
+    logging the error.
+
+    This function ensures that required directories are present before 
+    proceeding with further script execution. It enhances error handling by 
+    allowing for a customizable termination message.
 
     Usage Example:
-        method=$(extract_overlap_operator_method "/path/to/file_with_Chebyshev")
-        echo "Operator method: $method"  # Outputs: Operator method: Chebyshev
-
-    Notes:
-    - The function performs case-insensitive substring matching using regular 
-      expressions to check for "Chebyshev" or "KL" in the provided path.
-    - If neither "Chebyshev" nor "KL" is found, it assumes the operator method 
-      is "Bare."
+        # Define the directory path and error message
+        destination_directory="/path/to/destination_directory"
+        error_message="Invalid destination directory path. Check again."
+        
+        # Call the function to check if the directory exists
+        check_if_directory_exists "$destination_directory" "$error_message"
     '
-    
-    local path="$1"  # Input path
 
-    # 1. Check for "Chebyshev", "chebyshev", or "CHEBYSHEV"
-    if [[ "$path" =~ [Cc][Hh][Ee][Bb][Yy][Ss][Hh][Ee][Vv] ]]; then
-        echo "Chebyshev"
+    local directory_path="$1"
+    local error_message="$2"
+    local script_termination_message="$3"
+    set_script_termination_message script_termination_message
 
-    # 2. Check for "KL" or "kl"
-    elif [[ "$path" =~ [Kk][Ll] ]]; then
-        echo "KL"
-
-    # 3. Default case
-    else
-        echo "Bare"
+    # Set a default error message if none is provided
+    if [ -z "$error_message" ]; then
+      error_message="Directory '$directory_path' does not exist. "
+      error_message+="Please check again."
     fi
-}
 
-
-extract_kernel_operator_type()
-{
-:   '
-    Function: extract_kernel_operator_type
-    Description: Maps the values of the KERNEL_OPERATOR_TYPE_FLAG variable to 
-    the corresponding operator type name based on predefined mappings.
-
-    Parameters:
-    - KERNEL_OPERATOR_TYPE_FLAG (string): The flag indicating the operator type. 
-      This can be one of the predefined values: "Standard", "Stan", "0", 
-      "Brillouin", "Bri", or "1".
-
-    Returns:
-    - Outputs the operator type based on the value of KERNEL_OPERATOR_TYPE_FLAG:
-        - "Standard" for "Standard", "Stan", or "0"
-        - "Brillouin" for "Brillouin", "Bri", or "1"
-    - Returns 1 if the flag value is invalid, along with an error message.
-
-    Usage Example:
-        KERNEL_OPERATOR_TYPE_FLAG="0"
-        operator_type=$(extract_kernel_operator_type \
-                                                "$KERNEL_OPERATOR_TYPE_FLAG")
-        echo $operator_type  # Output: Standard
-
-        KERNEL_OPERATOR_TYPE_FLAG="Bri"
-        operator_type=$(extract_kernel_operator_type \
-                                                "$KERNEL_OPERATOR_TYPE_FLAG")
-        echo $operator_type  # Output: Brillouin
-
-    Notes:
-    - This function uses a case statement to match the values of 
-      KERNEL_OPERATOR_TYPE_FLAG and return the corresponding operator type.
-    - If the value of KERNEL_OPERATOR_TYPE_FLAG does not match any of the 
-      expected values, the function prints an error message with valid options 
-      and returns 1.
-    '
-
-    local kernel_operator_type_flag="$1"
-
-    case "$kernel_operator_type_flag" in
-        "Standard" | "Stan" | "0")
-            echo "Standard"
-            return 0
-            ;;
-        "Brillouin" | "Bri" | "1")
-            echo "Brillouin"
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-
-extract_QCD_beta_value()
-{
-:   '
-    Function: extract_QCD_beta_value
-    Description: Extracts the QCD beta value from a given gauge links
-    configurations directory path. The QCD beta value is defined as the
-    substring between "_b" and "_L" in the directory path.
-    
-    Parameters:
-    - path (string): The full gauge links configurations directory path from
-      which to extract the QCD beta value. Example:
-      "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE".
-    
-    Returns: 
-    - Prints the extracted QCD beta value if found.
-    - Returns 0 on successful extraction.
-    - Prints an error message and returns 1 if the QCD beta value is not found.
-    
-    Example Usage:
-        beta_value=$(extract_QCD_beta_value \
-                            "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE")
-        if [ $? -eq 0 ]; then
-            echo "Extracted QCD beta value: $beta_value"
-        else
-            echo "Failed to extract QCD beta value."
-        fi
-    '
-
-    local gauge_links_configurations_directory_path="$1"
-
-    # Use parameter expansion to extract the QCD beta value
-    if [[ "$gauge_links_configurations_directory_path" =~ _b([^_]+)_L ]]; then
-        local beta_value="${BASH_REMATCH[1]}"
-        beta_value="${beta_value//p/.}"
-        echo "$beta_value"
-        return 0
-    else
-        echo "Error: QCD beta value not found in the given path."
+    # Check if the path is a directory
+    if [ ! -d "$directory_path" ]; then
+        termination_output "${error_message}" "${script_termination_message}"
         return 1
     fi
+
+    return 0
 }
 
 
-extract_lattice_dimensions()
+check_if_file_exists()
 {
 :   '
-    Function: extract_lattice_dimensions
-    Description: Extracts lattice dimensions from a given directory path. The 
-    function looks for a substring in the format 
-    "_L{spatial_side}T{temporal_side}" within the directory path and returns the
-     dimensions in a specified format.
+    Description: Checks if a file exists at the specified path. If the file 
+    does not exist, it prints a user-defined error message, optionally 
+    appending a termination message, and exits the script with a status code 
+    of 1.
 
     Parameters:
-    - dir_path (string): The full directory path from which to extract the
-      lattice dimensions. Example path: "/path/to/directory/_L24T48".
+    - file_path (string): The full path to the file to check.
+    - error_message (string): The error message to print if the file does 
+      not exist.
+    - script_termination_message (string, optional): A message to be appended 
+      to the log file upon termination. If not provided, a global variable 
+      SCRIPT_TERMINATION_MESSAGE will be used if set, or a default message 
+      will be assigned.
 
-    Returns:
-    - Prints the dimensions in the format: 
-                    "$temporal_side $spatial_side $spatial_side $spatial_side".
-    - Returns 1 if the expected substring is not found in the directory path.
+    Returns: None
+    Exits: Exits the script with status 1 if the file does not exist, after 
+    logging the error.
+
+    This function ensures that required files are present before proceeding 
+    with further script execution. It enhances error handling by allowing for 
+    a customizable termination message.
 
     Usage Example:
-        dimensions=$(extract_lattice_dimensions \
-                            "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE")
-        if [ $? -eq 0 ]; then
-            echo "Lattice dimensions: $dimensions"
-        else
-            echo "Failed to extract lattice dimensions."
-        fi
-
-    Notes:
-    - The function uses a regular expression to identify and extract the spatial 
-      and temporal sides from the provided directory path.
-    - If the expected format is not found, the function prints an error message 
-      and returns 1, indicating failure.
+        # Define the file path and error message
+        empty_parameters_file="/path/to/empty_parameters_file"
+        error_message="Invalid empty parameters file path. Check again."
+        
+        # Call the function to check if the file exists
+        check_if_file_exists "$empty_parameters_file" "$error_message"
     '
 
-    local dir_path="$1"
-    
-    # Use a regex to extract the substring of the form
-    # "_L{spatial_side}T{temporal_side}"
-    if [[ "$dir_path" =~ _L([0-9]+)T([0-9]+) ]]; then
-        spatial_side="${BASH_REMATCH[1]}"   # Extract the spatial side (L)
-        temporal_side="${BASH_REMATCH[2]}"  # Extract the temporal side (T)
+    local file_path="$1"
+    local error_message="$2"
+    local script_termination_message="$3"
+    set_script_termination_message script_termination_message
 
-        # Print the desired output: "$temporal_side $spatial_side $spatial_side
-        # $spatial_side"
-        echo "$temporal_side $spatial_side $spatial_side $spatial_side"
-    else
-        echo "Error: Lattice dimensions not found in the directory path"
+    # Set a default error message if none is provided
+    if [ -z "$error_message" ]; then
+      error_message="Path '$file_path' to file is invalid or "
+      error_message+="file does not exist. Please check again."
+    fi
+
+    # Check if the file exists
+    if [ ! -f "$file_path" ]; then
+        termination_output "${error_message}" "${script_termination_message}"
         return 1
     fi
+
+    return 0
+}
+
+
+copy_file_and_check()
+{
+    local source_file="$1"
+    local destination_file="$2"
+
+    cp "$source_file" "$destination_file"
+    if [ $? -ne 0 ]; then
+        # If copy fails, output error and terminate script
+        local error_message="Copying '$(basename "$source_file")' file failed."
+        termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE"
+        return 1  # Return 1 for failure
+    fi
+
+    return 0  # Return 0 for success
 }
 
 
@@ -570,7 +483,6 @@ validate_updated_constant_parameters_array()
 }
 
 
-
 validate_updated_constant_parameters_array_old()
 {
 :   '
@@ -636,315 +548,6 @@ local -n list_of_updated_constant_values="$list_of_updated_constant_values_name"
     done
 
     return 0
-}
-
-
-constant_parameters_update()
-{
-:   '
-    Function: constant_parameters_update
-    Description: Updates constants with new values based on input data. The 
-    array of updated constants is passed by name.
-
-    Parameters:
-    - list_of_updated_constant_values_name (string): The name of the array
-      containing key-value pairs in the format "KEY=VALUE". These pairs
-      represent constants and their updated values.
-
-    Returns: None
-
-    This function reads a list of updated constants from the array passed by
-    name. Each item in the array is expected to be a string in the format
-    "KEY=VALUE", where KEY is the name of the constant to be updated and VALUE
-    is its new value. The function splits each item into KEY and VALUE using
-    the '=' delimiter and updates the corresponding constant using indirect
-    reference with `eval`.
-
-    It also ensures that only one of the variables 'BARE_MASS' and 
-    'KAPPA_VALUE' is updated at a time. If both are passed for update, the 
-    function returns an error message and stops execution.
-
-    Usage Example:
-    # Define an array of constants to update
-    LIST_OF_UPDATED_CONSTANT_VALUES=( 
-        "NUMBER_OF_CHEBYSHEV_TERMS=3"
-        "RHO_VALUE=0.3"
-        "BARE_MASS=1.2"
-    )
-    # Call the function to update constants
-    constant_parameters_update LIST_OF_UPDATED_CONSTANT_VALUES
-
-    Notes:
-    - This function also handles special updates for
-    "GAUGE_LINKS_CONFIGURATION_LABEL" by calling an external function to match
-    the configuration label to the file.
-    - Indirect referencing is used with `eval` to dynamically update constants.
-    - Simultaneous updating of "BARE_MASS" and "KAPPA_VALUE" is not allowed.
-      If both are present in the updates, the function prints an error and 
-      exits early.
-    '
-
-    local list_of_updated_constant_values_name="$1" # Name of the array
-    # Array reference
-    local -n list_of_updated_constant_values="$list_of_updated_constant_values_name"
-
-    # Temporary variable to store the updated file path
-    local updated_file_path
-
-    # Track if either BARE_MASS or KAPPA_VALUE has been updated
-    local bare_mass_updated=false
-    local kappa_value_updated=false
-
-    # Loop through updated constants
-    for item in "${list_of_updated_constant_values[@]}"; do
-        # Split the key-value pair
-        IFS='=' read -r key value <<< "$item"
-        
-        eval "$key='$value'"
-
-        # Check if the key is GAUGE_LINKS_CONFIGURATION_LABEL
-        if [[ "$key" == "GAUGE_LINKS_CONFIGURATION_LABEL" ]]; then
-            # Attempt to update GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH
-            updated_file_path=$(match_configuration_label_to_file "$value")
-            if [ $? -ne 0 ]; then
-                warning_message="Invalid configuration label '$value' ignored."
-                log "WARNING" "$warning_message"
-                continue  # Skip updating this key if there was an error
-            fi
-            eval "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH='$updated_file_path'"
-        fi
-
-        # Check for BARE_MASS and KAPPA_VALUE updates
-        if [[ "$key" == "BARE_MASS" ]]; then
-            if [ "$kappa_value_updated" = true ]; then
-                error_message="Cannot update both 'BARE_MASS' and "
-                error_message+="'KAPPA_VALUE' at the same time."
-                termination_output "${error_message}" \
-                                "${script_termination_message}"
-                return 1
-            fi
-            bare_mass_updated=true
-            KAPPA_VALUE=$(calculate_kappa_value "$value")
-        elif [[ "$key" == "KAPPA_VALUE" ]]; then
-            if [ "$bare_mass_updated" = true ]; then
-                error_message="Cannot update both 'BARE_MASS' and "
-                error_message+="'KAPPA_VALUE' at the same time."
-                termination_output "${error_message}" \
-                                                "${script_termination_message}"
-                return 1
-            fi
-            kappa_value_updated=true
-            BARE_MASS=$(calculate_bare_mass_from_kappa_value "$value")
-        fi
-
-    done
-
-    return 0
-}
-
-
-exclude_elements_from_array()
-{
-:   '
-    Function: exclude_elements_from_array
-    Description: Returns a new array with elements excluded based on the 
-    provided indices array. The original main array remains unmodified.
-
-    Parameters:
-    - main_array_name (string): The name of the array from which elements will 
-      be excluded. This array is passed by name.
-    - indices_array_name (string): The name of the array containing the indices 
-      of elements to be excluded. This array is passed by name, and each index 
-      must be a non-negative integer corresponding to a valid index in the 
-      main array.
-
-    Returns:
-    - A new array with the specified elements removed.
-
-    Usage Example:
-    MAIN_ARRAY=("apple" "banana" "cherry" "date")
-    INDICES_TO_REMOVE=(1 3)
-    reduced_array=$(exclude_elements_from_array MAIN_ARRAY INDICES_TO_REMOVE)
-    echo "${reduced_array[@]}"  # Output: "apple cherry"
-
-    Notes:
-    - The function does not modify the original main array. Instead, it returns 
-      a new array with the specified elements excluded.
-    - Indices must be valid non-negative integers, and they must refer to valid 
-      positions in the main array.
-    - The function sorts indices in descending order to avoid shifting issues 
-      during removal.
-    '
-
-    local main_array_name="$1"         # Name of the main array
-    local indices_array_name="$2"      # Name of the indices array
-    local -n main_array="$main_array_name"   # Reference to the main array
-    local -n indices_array="$indices_array_name" # Reference to the indices array
-    local result_array=()              # New array to store the reduced elements
-
-    # Sort the indices array in descending order to avoid shifting issues
-    mapfile -t indices_array < <(for i in "${indices_array[@]}"; do echo "$i"; done | sort -rn)
-
-    # Create a copy of the main array
-    result_array=("${main_array[@]}")
-
-    # Remove elements at the specified indices
-    for index in "${indices_array[@]}"; do
-        if (( index >= 0 && index < ${#main_array[@]} )); then
-            unset "result_array[$index]"
-        else
-            echo "Error: Index '$index' is out of range for array '$main_array_name'."
-            return 1
-        fi
-    done
-
-    # Compact the array to remove gaps created by 'unset'
-    result_array=("${result_array[@]}")
-
-    # Print the resulting array with excluded elements
-    echo "${result_array[@]}"
-    
-    return 0
-}
-
-
-
-################################################################################
-
-
-extract_configuration_label_from_file()
-{
-:   '
-    Function: extract_configuration_label_from_file
-
-    Description:
-    This function extracts the configuration label from a given gauge links 
-    configuration file full path. The configuration label is defined as the 
-    substring after the last dot in the file path.
-
-    Parameters:
-    1. file_full_path: The full path to the gauge links configuration file.
-
-    Returns:
-    The configuration label extracted from the file full path.
-
-    Example Usage:
-    file_full_path="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE/conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200"
-    configuration_label=$(extract_configuration_label_from_file "$file_full_path")
-    echo "$configuration_label"  # Outputs: 0024200
-    '
-
-    local file_full_path="$1"
-    local configuration_label="${file_full_path##*.}"
-    echo "$configuration_label"
-}
-
-
-print_list_of_modifiable_parameters()
-{
-:   '
-    Function to print the array elements with their indices and current values.
-    
-    Usage:
-        print_list_of_modifiable_parameters
-    
-    Arguments:
-        None
-    
-    Output:
-        Prints each element of the MODIFIABLE_PARAMETERS_LIST array with its 
-        index and current value.
-    
-    Example Output:
-        1  : LATTICE_DIMENSIONS=48 24 24 24
-        2  : CONFIG_LABEL=002
-    
-    Notes:
-        - The function uses a for loop to iterate over each element in the 
-          MODIFIABLE_PARAMETERS_LIST array.
-        - Indirect variable expansion is used to dynamically access the value 
-          of each parameter.
-        - The printf command is used for formatted output, ensuring the index 
-          is right-aligned and takes up at least 2 characters.
-        - The index variable is incremented in each iteration to keep track of 
-          the index of the current element.
-    
-    Example:
-        MODIFIABLE_PARAMETERS_LIST=("PARAM1" "PARAM2")
-        PARAM1="value1"
-        PARAM2="value2"
-        print_list_of_modifiable_parameters
-        Output:
-            1  : PARAM1=value1
-            2  : PARAM2=value2
-    '
-
-    local index=0
-
-    for parameter_name in "${MODIFIABLE_PARAMETERS_LIST[@]}"; do
-        # "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" needs different treatment
-        if [ "$parameter_name" == "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" ]; then
-            # Indirect variable expansion to get the value of the parameter
-            local parameter_value
-            parameter_value=$(extract_configuration_label_from_file "${!parameter_name}")
-            printf "%2d : CONFIGURATION_LABEL=%s\n" "$index" "$parameter_value"
-        else
-            local parameter_value="${!parameter_name}"
-            printf "%2d : %s=%s\n" "$index" "$parameter_name" "$parameter_value"
-        fi
-
-
-        ((index++))
-    done
-
-    # Additional new line
-    echo
-}
-
-
-
-
-
-# TODO: Remove
-extract_operator_method()
-{
-:   '
-    Function to extract the operator method from a given script path
-    Usage: extract_operator_method $multiple_runs_script_full_path
-    Arguments:
-        *multiple_runs_script_full_path: The full path of the script to extract 
-        the operator method from.
-    Output:
-        Prints the extracted operator method based on the presence of predefined
-         operator types in the script path. If no matching operator method is 
-         found, it returns the default operator method.
-    Example:
-        operator_method=$(extract_operator_method \
-                                        "/path/to/script/Brillouin_analysis.sh")
-        This sets operator_method to "Brillouin" since the script path contains 
-        the "Brillouin" operator type.
-    Notes:
-        - This function iterates over a predefined array of operator types and 
-        checks if any of them are present in the script path.
-        - If a match is found, it returns the matched operator method.
-        - If no match is found, it returns the default operator method, which is
-         the first element of the OPERATOR_METHODS_ARRAY.
-        - The function assumes that the OPERATOR_METHODS_ARRAY is defined 
-        globally or accessible within the scope of the script.
-        - The function uses pattern matching to check if the operator method is 
-        present in the script path.
-    '
-
-    local multiple_runs_script_full_path="$1"
-    
-    for operator_method in "${OPERATOR_METHODS_ARRAY[@]}"; do
-        if [[ "$multiple_runs_script_full_path" == *"$operator_method"* ]]; then
-            echo "$operator_method"
-            return 0
-        fi
-    done
-
-    echo ${OPERATOR_METHODS_ARRAY[0]}
 }
 
 
@@ -1034,133 +637,6 @@ validate_indices_array_old()
 }
 
 
-parameter_range_of_values_generator()
-{
-    :   '
-    Description:
-    Generates a range of parameter values using the specified helper function.
-    Assumes the validity of the range string format "[start end step]".
-
-    Parameters:
-    1. helper_function: The name of the function that generates the parameter 
-    range.
-    2. range_variable_name: The name of the variable that holds the range string
-    in the format "[start end step]".
-
-    Output:
-    Prints the generated range of values as output from the helper function.
-
-    Example:
-    parameter_range_of_values_generator parameter_range_generator "INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES"
-    '
-
-    local helper_function="$1"
-    local range_variable_name="$2"
-
-    # Create a name reference to the range variable
-    declare -n range_string="$range_variable_name"
-
-    # Remove square brackets from range_string and extract start, end, and step
-    range_string="${range_string//[\[\]]/}"
-    
-    # Extract start, end, and step from the range_string
-    IFS=' ' read -r start end step <<< "${range_string}"
-
-    # Call the helper function with start, end, and step arguments
-    output_array=($("$helper_function" "$start" "$end" "$step"))
-
-    # Print each value in the output_array
-    echo "${output_array[@]}"
-}
-
-
-
-parameter_range_of_values_generator_old()
-{
-:   '
-    Description:
-    Generates a range of parameter values using the specified helper function.
-    Assumes the validity of the range string format "[start end step]".
-
-    Parameters:
-    1. helper_function: The name of the function that generates the parameter 
-    range.
-    2. range_string: String specifying the range in the format 
-    "[start end step]".
-
-    Output:
-    Prints the generated range of values as output from the helper function.
-
-    Example:
-    parameter_range_of_values_generator parameter_range_generator "[1 10 2]"
-    '
-
-    local helper_function="$1"
-    local range_string="$2"
-
-    # Remove square brackets from range_string and extract start, end, and step
-    range_string="${range_string//[\[\]]/}"
-    # Extract start, end, and step from the range_string
-    IFS=' ' read -r start end step <<< "${range_string}"
-
-    # Call the helper function with start, end, and step arguments
-    output_array=($("$helper_function" "$start" "$end" "$step"))
-
-    # Print each value in the output_array
-    # printf '%s\n' "${output_array[@]}"
-    echo "${output_array[@]}"
-}
-
-# TODO: What about a general integer numbers range function?
-construct_number_of_Chebyshev_terms_range()
-{
-:   '
-    Function to construct a range of integer values given a start, end, and step
-    Usage: construct_range $start $end $step
-    Arguments:
-        * start: The starting integer of the range.
-        * end: The ending integer of the range.
-        * step: The increment (positive or negative) between consecutive 
-        integers in the range.
-    Output:
-        A space-separated string of integers representing the range from start 
-        to end, inclusive, incremented by step. If step is zero, the function 
-        prints an error message and returns 1.
-    Example:
-        range=$(construct_range 1 10 2)
-        This sets range to "1 3 5 7 9".
-    Notes:
-        - The function handles both positive and negative steps.
-        - If start is less than or equal to end, the function generates an 
-        increasing sequence.
-        - If start is greater than or equal to end, the function generates a 
-        decreasing sequence.
-    '
- 
-    local start="$1"
-    local end="$2"
-    local step="$3"
-    local range=()
-
-    if [ "$step" -eq 0 ]; then
-        echo "Step cannot be zero."
-        return 1
-    fi
-
-    if [ "$step" -gt 0 ]; then
-        for ((i = start; i <= end; i += step)); do
-            range+=("$i")
-        done
-    else
-        for ((i = start; i >= end; i += step)); do
-            range+=("$i")
-        done
-    fi
-
-    echo "${range[@]}"
-}
-
-
 check_for_range_input()
 {
     local helper_function="$1"
@@ -1175,47 +651,6 @@ check_for_range_input()
     else
         return 1
     fi
-}
-
-
-exclude_elements_from_modifiable_parameters_list_by_index()
-{
-:   '
-    Function to construct a subarray by excluding specified indices from the
-     global array MODIFIABLE_PARAMETERS_LIST.
-    This function takes a space-separated list of indices as its argument. It 
-    iterates over the global array MODIFIABLE_PARAMETERS_LIST and constructs a
-     new subarray that excludes the elements at the specified indices.
-    Parameters:
-      $1 - A space-separated list of indices to exclude.
-    Returns:
-      The subarray with the specified elements removed, printed as a 
-      space-separated string.
-    Usage - Example:
-      indices_to_exclude="1 3"
-      exclude_indices_from_modifiable_parameters_list "${indices_to_exclude[@]}"
-    Notes:
-      - This function assumes that the global array MODIFIABLE_PARAMETERS_LIST 
-      is already defined.
-      - The indices in the list to exclude should be valid indices of the global
-       array MODIFIABLE_PARAMETERS_LIST.
-      - The function uses string comparison to ensure accurate matching of 
-      indices.
-    '
-
-    local indices_to_be_excluded_list=("$@")
-    local modifiable_parameters_sublist=()
-
-    for index in "${!MODIFIABLE_PARAMETERS_LIST[@]}"; do
-        # Spaces are necessary around $i in " $i " ensure that the index is 
-        # matched exactly, preventing partial matches with other indices.
-        if [[ ! " ${indices_to_be_excluded_list[@]} " =~ " ${index} " ]]; then
-            modifiable_parameters_sublist+=(\
-                                        "${MODIFIABLE_PARAMETERS_LIST[$index]}")
-        fi
-    done
-
-    echo "${modifiable_parameters_sublist[@]}"
 }
 
 
@@ -1335,111 +770,6 @@ validate_varying_parameter_values_array_old()
 }
 
 
-compare_no_common_elements()
-{
-    local -n array1="$1"    # First array (non-negative integers)
-    local -n array2="$2"    # Second array (non-negative integers)
-
-    local -A elements_seen  # Associative array to track elements
-    local common_elements=() # Array to store common elements
-
-    # Mark all elements in array1
-    for elem in "${array1[@]}"; do
-        elements_seen[$elem]=1
-    done
-
-    # Check for common elements in array2
-    for elem in "${array2[@]}"; do
-        if [[ -n "${elements_seen[$elem]}" ]]; then
-            common_elements+=("$elem")  # Add common element to list
-        fi
-    done
-
-    # If common elements were found, print an error
-    if [ ${#common_elements[@]} -gt 0 ]; then
-        error_message="No varying parameters values can be printed as constant."
-        termination_output "${error_message}" "${SCRIPT_TERMINATION_MESSAGE}"
-        return 1
-    fi
-
-    return 0
-}
-
-
-print_lattice_dimensions() {
-    local temporal_dimension="$1"
-    local spatial_dimension="$2"
-
-    # Output the string in the form "T${temporal_dimension}L${spatial_dimension}"
-    echo "T${temporal_dimension}L${spatial_dimension}"
-}
-
-
-
-modify_decimal_format() {
-    local input_string="$1"
-    local modified_string="${input_string//./p}"
-    echo "$modified_string"
-}
-
-
-
-modify_decimal_format_old() {
-:   '
-    Function to check if a value contains a decimal number and modify its format.
-    Parameters:
-        $1 - The string to be checked and modified
-    Returns:
-        Modified string with the decimal point in the number replaced by "p" 
-        if a decimal number is found in the string.
-    Usage:
-        parameter_value=$(modify_decimal_format "$parameter_value")
-    Explanation:
-        - This function searches for a decimal number in the input string.
-        - If found, it replaces the decimal point in the number with "p".
-        - If no decimal number is found, the function returns the original string.
-    '
-
-    local value="$1"
-
-    # Use regex to match a decimal number in the string and replace only the decimal point
-    echo "$value" | sed -E 's/([0-9]+)\.([0-9]+)/\1p\2/'
-}
-
-
-modify_decimal_format_old_old()
-{
-:   '
-    Function to check if a value is a decimal number and modify its format.
-    Parameters:
-        $1 - The value to be checked and modified
-    Returns:
-        Modified value with the decimal point replaced by "p" if it is a decimal
-         number, otherwise returns the original value.
-    Usage:
-        parameter_value=$(modify_decimal_format "$parameter_value")
-    Explanation:
-        - This function takes one argument and checks if it is a decimal number.
-        - A decimal number is defined as an optional minus sign, followed by 
-          one or more digits, followed optionally by a decimal point and one 
-          or more digits.
-        - If the value matches the pattern, the function replaces the decimal 
-          point with the letter "p".
-        - If the value does not match the pattern, the function returns the 
-          original value unchanged.
-    '
-
-    local value="$1"
-
-    if [[ $value =~ ^-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?$ ]]; then
-        echo "${value//./p}"
-    else
-        echo "$value"
-    fi
-}
-
-
-
 is_decimal_number()
 {
 :   '
@@ -1473,104 +803,6 @@ is_decimal_number()
     else
         echo 1  # False
     fi
-}
-
-
-trim_whitespace()
-{
-:   '
-    Function: trim_whitespace
-
-    Description:
-    Trims leading and trailing whitespace from a given string. This function 
-    is useful for cleaning up strings that may have extra spaces at the 
-    beginning or end, which can interfere with string comparisons and other 
-    operations.
-
-    Parameters:
-    1. var: The input string that needs to be trimmed of leading and trailing 
-    whitespace.
-
-    Output:
-    Prints the trimmed string without leading or trailing whitespace.
-
-    Usage:
-    trimmed_string=$(trim_whitespace "  example string  ")
-
-    Example:
-    input_string="   some text with spaces   "
-    trimmed_string=$(trim_whitespace "$input_string")
-    # trimmed_string now contains "some text with spaces"
-
-    Notes:
-    - This function uses Bash string manipulation techniques to remove 
-    whitespace.
-    - The function does not modify the original string but outputs the trimmed 
-    result.
-    '
-
-    local var="$*"
-    
-    # Remove leading and trailing whitespace
-    var="${var#"${var%%[![:space:]]*}"}"
-    var="${var%"${var##*[![:space:]]}"}"
-    
-    echo -n "$var"
-}
-
-
-
-find_index()
-{
-:   '
-    Function: find_index
-    This function searches for an element in a given array and returns the 
-    index of the first occurrence of that element.
-
-    Parameters:
-    - element (string): The element to search for in the array.
-    - array (array): The array in which to search for the element. The array 
-      should be passed as individual arguments.
-
-    Returns:
-    - If the element is found, the function prints the index of the first 
-      occurrence of the element and returns 0.
-    - If the element is not found, the function prints -1 and returns 1.
-
-    Usage:
-    find_index element "${array[@]}"
-
-    Example:
-    my_array=("apple" "banana" "cherry" "date")
-    element_to_find="cherry"
-    index=$(find_index "$element_to_find" "${my_array[@]}")
-
-    if [[ $index -ne -1 ]]; then
-        echo "Element '$element_to_find' found at index $index."
-    else
-        echo "Element '$element_to_find' not found in the array."
-    fi
-
-    Notes:
-    - This function uses a loop to iterate through the array and compare each 
-      element with the target element.
-    - The function prints the index of the first match found and returns 0.
-    - If no match is found, the function prints -1 and returns 1.
-    '
-    
-    local element="$1"
-    shift
-    local array=("$@")
-
-    for i in "${!array[@]}"; do
-        if [[ "${array[$i]}" == "$element" ]]; then
-            echo "$i"
-            return 0
-        fi
-    done
-
-    echo "-1"  # Return -1 if the element is not found
-    return 1
 }
 
 
@@ -1638,19 +870,42 @@ validate_updated_constant_parameters_array_old()
 }
 
 
+check_mpi_geometry() {
+    local input="$1"
 
-print_array_limited() {
-    local -n array=$1  # Use nameref to pass array by name
-    local limit=${2:-10}  # Max number of elements to show, default is 10
-
-    # If the array length is within the limit, print all elements
-    if [ "${#array[@]}" -le "$limit" ]; then
-        echo "${array[@]}"
-    else
-        # Calculate the split points
-        local half_limit=$((limit / 2))
-        
-        # Print first half, then '...', then last half
-        echo "${array[@]:0:half_limit} ... ${array[@]: -half_limit}"
+    # Use regex to check if input matches the form "even,even,even"
+    if [[ "$input" =~ ^([0-9]+),([0-9]+),([0-9]+)$ ]]; then
+        # Check each number to see if it's an even integer
+        if (( ${BASH_REMATCH[1]} % 2 == 0 && ${BASH_REMATCH[2]} % 2 == 0 && ${BASH_REMATCH[3]} % 2 == 0 )); then
+            return 0  # Valid input
+        fi
     fi
+  
+    error_message="Invalid 'MPI_GEOMETRY' input value."
+    termination_output "${error_message}" "${SCRIPT_TERMINATION_MESSAGE}"
+    return 1  # Not valid input
+}
+
+
+check_walltime() {
+    local input="$1"
+
+    # Use regex to match "HOURS:MINUTES:SECONDS" format
+    if [[ "$input" =~ ^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})$ ]]; then
+        local hours="${BASH_REMATCH[1]}"
+        local minutes="${BASH_REMATCH[2]}"
+        local seconds="${BASH_REMATCH[3]}"
+
+        # Validate the ranges for hours, minutes, and seconds
+        if (( hours >= 0 && hours <= 24 && minutes >= 0 && minutes < 60 && seconds >= 0 && seconds < 60 )); then
+            # Ensure the input is not "00:00:00"
+            if ! [[ "$hours" == "0" && "$minutes" == "0" && "$seconds" == "0" ]]; then
+                return 0  # Valid input
+            fi
+        fi
+    fi
+
+    error_message="Invalid 'WALLTIME' input value."
+    termination_output "${error_message}" "${SCRIPT_TERMINATION_MESSAGE}"
+    return 1  # Not valid input
 }
