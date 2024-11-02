@@ -9,7 +9,7 @@ GAUGE_LINKS_CONFIGURATIONS_DIRECTORY="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T
 
 # Executable's output
 LOG_FILES_DIRECTORY=./log_files
-BINARY_SOLUTION_FILES_DIRECTORY="/nvme/h/cy22sg1/scratch/invert_solutions_files"
+BINARY_INVERT_SOLUTION_FILES_DIRECTORY="/nvme/h/cy22sg1/scratch/invert_solutions_files"
 
 ########################### PARAMETERS SPECIFICATION ###########################
 
@@ -19,11 +19,11 @@ BINARY_SOLUTION_FILES_DIRECTORY="/nvme/h/cy22sg1/scratch/invert_solutions_files"
 
 # Non-iterable parameters
 KERNEL_OPERATOR_TYPE_FLAG=0
-LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED=
+LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED=(0 1)
 
 # Varying iterable parameters
-VARYING_PARAMETERS_INDICES_LIST=
-# Array format: (), or range format: "[start end step]"
+VARYING_PARAMETERS_INDICES_LIST=()
+# Array format: (), or range format: "[start end step]":
 INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=
 OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=
 OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=
@@ -32,9 +32,12 @@ OVERALL_OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES=
 # Format: "parameter=parameter_value":
 LIST_OF_UPDATED_CONSTANT_VALUES=(
     )
-LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED=
+LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED=()
 
-################################ JOBS SUBMISSION ###############################
+# Optional additional text at the end of the output filenames
+ADDITIONAL_TEXT_TO_BE_PRINTED=
+
+################################# SLURM OPTIONS ################################
 
 PARTITION_NAME="nehalem"
 MPI_GEOMETRY="2,2,2"

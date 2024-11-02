@@ -200,6 +200,13 @@ bare mass values. For example:
 LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED=(3 6)
 ```
 
+#### OPTIONAL ADDITIONAL TEXT
+Finally, there's the option to add manually a suffix to the output filenames. It
+can be left empty if not necessary:
+```
+ADDITIONAL_TEXT_TO_BE_PRINTED=
+```
+
 ################################# SLURM OPTIONS ################################
 Options necessary for the successful submission of Slurm jobs on the cluster
 

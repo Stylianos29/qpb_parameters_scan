@@ -504,6 +504,7 @@ log "INFO" "Parameters files template was partially filled."
 check_mpi_geometry $MPI_GEOMETRY || { echo "Exiting..."; exit 1; }
 # The number of tasks is calculated automatically from the given MPI geometry
 NUMBER_OF_TASKS=($(convert_mpi_geometry_to_number_of_tasks $MPI_GEOMETRY))
+# TODO: Correct the output of the "is_integer" function
 # is_integer $NUMBER_OF_NODES || {
 #         error_message="Invalid 'NUMBER_OF_NODES' input value.";
 #         termination_output "${error_message}";
@@ -564,6 +565,11 @@ for overall_outer_loop_varying_parameter_value in \
             output_filename+="${outer_loop_suffix}"
             output_filename+="${inner_loop_suffix}"
             output_filename=$(modify_decimal_format $output_filename)
+
+            # Add "ADDITIONAL_TEXT_TO_BE_PRINTED" as a suffix 
+            if [[ -n "$ADDITIONAL_TEXT_TO_BE_PRINTED" ]]; then
+                output_filename+="_${ADDITIONAL_TEXT_TO_BE_PRINTED}"
+            fi
 
             # CONSTRUCT FILLED PARAMETERS FILE
 
