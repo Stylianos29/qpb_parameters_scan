@@ -221,7 +221,7 @@ LATTICE_DIMENSIONS=$(\
 non_iterable_parameters_values=$(\
         print_list_of_parameters NON_ITERABLE_PARAMETERS_NAMES_ARRAY -noindices)
 log "INFO" \
-"Non-iterable parameters values for execution:\n$non_iterable_parameters_values"
+"Working non-iterable parameters values:\n$non_iterable_parameters_values"
 
 # CHECK NON-ITERABLE PARAMETERS TO BE PRINTED
 
@@ -265,16 +265,14 @@ iterable_parameters_names_array="$iterable_parameters_names_array_name"
 # check its length. Check first if it's empty
 if [ -z "${VARYING_PARAMETERS_INDICES_LIST}" ]; then
     ERROR_MESSAGE="'VARYING_PARAMETERS_INDICES_LIST' must not be empty."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
-    echo "Exiting..."
+    termination_output "${ERROR_MESSAGE}"
     exit 1
 fi
 # Check then if VARYING_PARAMETERS_INDICES_LIST contains more than 3 indices
 if [ "${#VARYING_PARAMETERS_INDICES_LIST[@]}" -gt 3 ]; then
     ERROR_MESSAGE="'VARYING_PARAMETERS_INDICES_LIST' must contain at most 3 "\
 "indices."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
-    echo "Exiting..."
+    termination_output "${ERROR_MESSAGE}"
     exit 1
 fi
 # Check finally validity of VARYING_PARAMETERS_INDICES_LIST array
@@ -282,14 +280,14 @@ validate_indices_array VARYING_PARAMETERS_INDICES_LIST \
         iterable_parameters_names_array || { echo "Exiting..."; exit 1; }
 log "INFO" "Valid elements passed to 'VARYING_PARAMETERS_INDICES_LIST' array."
 
-# Create a reference to the range generator functions dictionary with a smaller
-# name for convenience
+# Create a shorter reference to the range generator functions dictionary 
+# for convenience
 declare -n \
 generators_dict="MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY"
 
-# Check values passed to those "*VARYING_PARAMETER_SET_OF_VALUES" variables
+# Check values passed to those "<>_VARYING_PARAMETER_SET_OF_VALUES" variables
 # among the three that correspond to the VARYING_PARAMETERS_INDICES_LIST values
-varying_iterable_parameters_names_array=()
+varying_iterable_parameters_names_array=() # Create array for later use
 for list_index in "${!VARYING_PARAMETERS_INDICES_LIST[@]}"; do
 
     # Extract the corresponding parameter name to the varying parameter index
@@ -302,17 +300,30 @@ for list_index in "${!VARYING_PARAMETERS_INDICES_LIST[@]}"; do
     temp="${VARYING_PARAMETERS_SET_OF_VALUES_ARRAYS_NAMES[$list_index]}"
     varying_parameter_set_of_values_array_name=$temp
 
-    # Check if a range of values was requested
-    if is_range_string $varying_parameter_set_of_values_array_name; then
-        log "INFO" "A range of values was requested for the "\
-"'${varying_parameter_set_of_values_array_name}' array."
+    # Check passed input to the corresponding varying parameter values array
+    # Check first if it was left empty
+    if [ -z "${!varying_parameter_set_of_values_array_name}" ]; then
+        # Indirect expansion to evaluate the value of the variable named in
+        # varying_parameter_set_of_values_array_name
+        error_message="Input variable "
+        error_message+="'${varying_parameter_set_of_values_array_name}' was "
+        error_message+="left empty, despite '${varying_parameter_name}' "
+        error_message+="declared as a varying iterable parameter."
+        termination_output "${error_message}"
+        exit 1
+
+    # Check if a range of values was requested via input "[start end step]"
+    elif is_range_string $varying_parameter_set_of_values_array_name; then
+        log_message="A range of values was requested to populate the "
+        log_message+="'${varying_parameter_set_of_values_array_name}' array."
+        log "INFO" "$log_message"
         # If a range was requested, then choose range of values generator
         range_of_values_function="${generators_dict[$varying_parameter_name]}"
         # Generate parameter values for the specified range using this function
         parameter_range_of_values_string=$(parameter_range_of_values_generator \
                             "$range_of_values_function"\
                                 "$varying_parameter_set_of_values_array_name")
-        # Change value of the "*VARYING_PARAMETER_SET_OF_VALUES" variable to
+        # Change value of the "<>_VARYING_PARAMETER_SET_OF_VALUES" variable to
         # the generated set of values
         declare -n array_to_modify="$varying_parameter_set_of_values_array_name"
         array_to_modify=($parameter_range_of_values_string)
@@ -320,27 +331,32 @@ for list_index in "${!VARYING_PARAMETERS_INDICES_LIST[@]}"; do
         printed_array=$(print_array_limited array_to_modify 15)
         log "INFO" "The set of values generated is:\n$printed_array."
 
+    # If no range of values was requested, then a set of values is expected
     elif validate_varying_parameter_values_array \
                         $varying_parameter_name \
                             $varying_parameter_set_of_values_array_name; then
-        # If no range of values was requested, then a set of values is expected
-        log "INFO" "A valid set of values passed to "\
-"'${varying_parameter_set_of_values_array_name}' array."
+        log_message="A valid set of values was passed to the "
+        log_message+="'${varying_parameter_set_of_values_array_name}' array."
+        log "INFO" "$log_message"
+
+    # Reject passed input if the varying parameter values array is not empty and
+    # both tests fail
     else
-        # If both tests fail, then input is rejected
-        log "Error" "Not valid input to "\
-"${varying_parameter_set_of_values_array_name} array."
+        error_message="Not valid input to "
+        error_message+="${varying_parameter_set_of_values_array_name} array."
+        termination_output "${error_message}"
+        exit 1
     fi
 done
 
 # If the length of the VARYING_PARAMETERS_INDICES_LIST array is smaller than
-# three, then the corresponding "*VARYING_PARAMETER_SET_OF_VALUES" variables
+# three, then the corresponding "<>_VARYING_PARAMETER_SET_OF_VALUES" variables
 # must acquire a ("DUMMY_VALUE") for later use
 for ((index=${#VARYING_PARAMETERS_INDICES_LIST[@]}; index<3 ; index++)); do
     # Extract the name of the varying parameter values array
     temp="${VARYING_PARAMETERS_SET_OF_VALUES_ARRAYS_NAMES[$index]}"
     varying_parameter_set_of_values_array_name=$temp
-    # Pass a single "DUMMY_VALUE" to "*VARYING_PARAMETER_SET_OF_VALUES" variable
+    # Pass a single "DUMMY_VALUE" to "<>_VARYING_PARAMETER_SET_OF_VALUES" variable
     declare -n array_to_modify="$varying_parameter_set_of_values_array_name"
     array_to_modify=("DUMMY_VALUE")
     log "INFO" "Array '${varying_parameter_set_of_values_array_name}' "\
@@ -433,7 +449,7 @@ TEMPLATE_PARAMETERS_FILE_FULL_PATH+="/params_${output_filename}.ini"
 cp ${EMPTY_PARAMETERS_FILE_FULL_PATH} ${TEMPLATE_PARAMETERS_FILE_FULL_PATH}
 if [ $? -ne 0 ]; then
     ERROR_MESSAGE="Copying '$EMPTY_PARAMETERS_FILE_FULL_PATH' file failed."
-    termination_output "${ERROR_MESSAGE}" "${SCRIPT_TERMINATION_MESSAGE}"
+    termination_output "${ERROR_MESSAGE}"
     echo "Exiting..."
     exit 1
 fi
@@ -477,7 +493,7 @@ for parameter in "${constant_parameters_names_array[@]}"; do
                                         "$TEMPLATE_PARAMETERS_FILE_FULL_PATH" \
         || { 
             error_message="Could not pass ${parameter} value to template file";
-            termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+            termination_output "$error_message";
             exit 1;
             }
 done
@@ -494,7 +510,7 @@ GENERIC_SCRIPT_SCRIPT_FULL_PATH=$QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH
 GENERIC_SCRIPT_SCRIPT_FULL_PATH+="/main_scripts/generic_run.sh"
 if [ ! -f "$GENERIC_SCRIPT_SCRIPT_FULL_PATH" ]; then
     error_message="Invalid path to generic job submissions script.";
-    termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE";
+    termination_output "$error_message";
     exit 1;
 fi
 log "INFO" "Parameters files template was partially filled."
