@@ -31,24 +31,28 @@
 ################################################################################
 
 
-# Prevent multiple sourcing of this script by exiting if AUXILIARY_SH_INCLUDED 
-# is already set. Otherwise, set AUXILIARY_SH_INCLUDED to mark it as sourced.
-[[ -n "${AUXILIARY_SH_INCLUDED}" ]] && return
-AUXILIARY_SH_INCLUDED=1
+# MULTIPLE SOURCING GUARD
 
-# Source dependencies
-CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Prevent multiple sourcing of this script by exiting if INTERFACE_SH_INCLUDED 
+# is already set. Otherwise, set INTERFACE_SH_INCLUDED to mark it as sourced.
+[[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
+INTERFACE_SH_INCLUDED=1
+
+# SOURCE DEPENDENCIES
+
+LIBRARY_SCRIPTS_DIRECTORY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source all custom functions scripts from "qpb_parameters_scan/library" using a
 # loop avoiding this way name-specific sourcing and thus potential typos
-for library_script in "$CURRENT_LIBRARY_SCRIPT_FULL_PATH";
+for library_script in "$LIBRARY_SCRIPTS_DIRECTORY_PATH";
 do
     # Check if the current file in the loop is a regular file
     if [ -f "$library_script" ]; then
         source "$library_script"
     fi
 done
-unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
+unset LIBRARY_SCRIPTS_DIRECTORY_PATH
 
+# FUNCTIONS DEFINITIONS
 
 log()
 {

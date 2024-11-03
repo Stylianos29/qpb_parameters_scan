@@ -3,30 +3,34 @@
 
 # TODO: Write description
 ######################################################################
-# usage.sh - Script for 
+# library/validation.sh - Script for 
 #
 #
 ######################################################################
 
+
+# MULTIPLE SOURCING GUARD
 
 # Prevent multiple sourcing of this script by exiting if INTERFACE_SH_INCLUDED 
 # is already set. Otherwise, set INTERFACE_SH_INCLUDED to mark it as sourced.
 [[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
 INTERFACE_SH_INCLUDED=1
 
-# Source dependencies
-CURRENT_LIBRARY_SCRIPT_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# SOURCE DEPENDENCIES
+
+LIBRARY_SCRIPTS_DIRECTORY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source all custom functions scripts from "qpb_parameters_scan/library" using a
 # loop avoiding this way name-specific sourcing and thus potential typos
-for library_script in "$CURRENT_LIBRARY_SCRIPT_FULL_PATH";
+for library_script in "$LIBRARY_SCRIPTS_DIRECTORY_PATH";
 do
     # Check if the current file in the loop is a regular file
     if [ -f "$library_script" ]; then
         source "$library_script"
     fi
 done
-unset CURRENT_LIBRARY_SCRIPT_FULL_PATH
+unset LIBRARY_SCRIPTS_DIRECTORY_PATH
 
+# FUNCTIONS DEFINITIONS
 
 check_if_directory_exists()
 {
@@ -334,6 +338,7 @@ is_range_string_old()
 
 # Function to validate a varying parameter values array
 # Takes the name of the array as input
+# TODO: Log output
 validate_varying_parameter_values_array()
 {
     local parameter_name="$1"
@@ -343,7 +348,7 @@ validate_varying_parameter_values_array()
     if [[ -z "$(declare -p "$varying_parameter_values_array_name" 2>/dev/null)"\
  || "$(declare -p "$varying_parameter_values_array_name")" != "declare -a"* ]]; 
     then
-        echo "Error: $varying_parameter_values_array_name is not a valid array."
+        # echo "Error: $varying_parameter_values_array_name is not a valid array."
         return 1
     fi
 
