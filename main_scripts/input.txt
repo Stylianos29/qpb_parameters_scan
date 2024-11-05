@@ -44,9 +44,9 @@ NUMBER_OF_NODES=1
 MPI_GEOMETRY="2,2,2"
 WALLTIME="01:00:00"
 
-# Optional options
-PARTITION_NAME="nehalem"
-NTASKS_PER_NODE=16
+# Optional options (superseding those inside "run.sh")
+PARTITION_NAME=
+NTASKS_PER_NODE=
 
 # Additional options, for example: --reservation=short -A slnpp
-ADDITIONAL_OPTIONS="--map-by ppr:8:socket --bind-to core --report-bindings"
+ADDITIONAL_OPTIONS=
