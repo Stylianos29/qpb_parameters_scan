@@ -5,11 +5,11 @@ MAIN_PROGRAM_EXECUTABLE=../
 # Executable's input
 EMPTY_PARAMETERS_FILE_PATH=./_params.ini_
 PARAMETERS_FILES_DIRECTORY=./params_files
-GAUGE_LINKS_CONFIGURATIONS_DIRECTORY="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE"
+GAUGE_LINKS_CONFIGURATIONS_DIRECTORY=
 
 # Executable's output
 LOG_FILES_DIRECTORY=./log_files
-BINARY_INVERT_SOLUTION_FILES_DIRECTORY="/nvme/h/cy22sg1/scratch/invert_solutions_files"
+BINARY_INVERT_SOLUTION_FILES_DIRECTORY=
 
 ########################### PARAMETERS SPECIFICATION ###########################
 
@@ -39,8 +39,14 @@ ADDITIONAL_TEXT_TO_BE_PRINTED=
 
 ################################# SLURM OPTIONS ################################
 
-PARTITION_NAME="nehalem"
-MPI_GEOMETRY="2,2,2"
+# Required options
 NUMBER_OF_NODES=1
-NTASKS_PER_NODE=16
+MPI_GEOMETRY="2,2,2"
 WALLTIME="01:00:00"
+
+# Optional options
+PARTITION_NAME="nehalem"
+NTASKS_PER_NODE=16
+
+# Additional options, for example: --reservation=short -A slnpp
+ADDITIONAL_OPTIONS=
