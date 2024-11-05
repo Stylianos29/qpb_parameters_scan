@@ -14,7 +14,7 @@
 LIBRARY_SCRIPTS_DIRECTORY_FULL_PATH="$(realpath ../library)"
 # Source all custom functions scripts from "qpb_parameters_scan/library" using a
 # loop avoiding this way name-specific sourcing and thus potential typos
-for library_script in "$LIBRARY_SCRIPTS_DIRECTORY_FULL_PATH";
+for library_script in "$LIBRARY_SCRIPTS_DIRECTORY_FULL_PATH"/*;
 do
     # Check if the current file in the loop is a regular file
     if [ -f "$library_script" ]; then
@@ -31,27 +31,36 @@ unittest_option=${1:-$unittest_option_default_value}
 
 # CUSTOM FUNCTIONS UNIT TESTS
 
-test_extract_configuration_label_from_file()
-{
-    # positive tests
-    test_input_values_list=(
-        "conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200" \
-        "conf_Nf0_b6p20_L24T48.0036800" \
-        )
-    expected_output_values_list=("0024200" "0036800")
+# test_general_range_of_values_generator() {
+#     local range_of_values=$(general_range_of_values_generator "2" "20" "2")
+#     echo $range_of_values
+# }
 
-    multiple_assert extract_configuration_label_from_file test_input_values_list \
-                                    expected_output_values_list || return 1;
 
-    # negative test
-    extract_configuration_label_from_file "INCORRECT_INPUT" >/dev/null 2>&1 || return 0;
+test_exponential_range_of_values_generator() {
+    local range_of_values=$(exponential_range_of_values_generator "1e-2" "1e-6" "1e-2")
+    echo $range_of_values
 }
 
-
-# test_check_lattice_dimensions()
+# test_extract_configuration_label_from_file()
 # {
-#     test_input_values_list=("24 12 12 12" "32 16 16 16" "40 20 20 21")
-#     expected_outputs_list=(0 0 1)
+#     # positive tests
+#     test_input_values_list=(
+#         "conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200" \
+#         "conf_Nf0_b6p20_L24T48.0036800" \
+#         )
+#     expected_output_values_list=("0024200" "0036800")
+
+#     multiple_assert extract_configuration_label_from_file test_input_values_list \
+#                                     expected_output_values_list || return 1;
+
+#     # negative test
+#     extract_configuration_label_from_file "INCORRECT_INPUT" >/dev/null 2>&1 || return 0;
+# }
+
+
+# test_check_lattice_dimensions() { test_input_values_list=("24 12 12 12" "32 16
+# 16 16" "40 20 20 21") expected_outputs_list=(0 0 1)
 
 #     multiple_assert check_lattice_dimensions test_input_values_list \
 #                                                         expected_outputs_list
