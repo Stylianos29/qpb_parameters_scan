@@ -49,4 +49,4 @@ PARTITION_NAME="nehalem"
 NTASKS_PER_NODE=16
 
 # Additional options, for example: --reservation=short -A slnpp
-ADDITIONAL_OPTIONS=
+ADDITIONAL_OPTIONS="--map-by ppr:8:socket --bind-to core --report-bindings"
