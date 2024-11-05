@@ -14,7 +14,7 @@
 LIBRARY_SCRIPTS_DIRECTORY_FULL_PATH="$(realpath ../library)"
 # Source all custom functions scripts from "qpb_parameters_scan/library" using a
 # loop avoiding this way name-specific sourcing and thus potential typos
-for library_script in "$LIBRARY_SCRIPTS_DIRECTORY_FULL_PATH";
+for library_script in "$LIBRARY_SCRIPTS_DIRECTORY_FULL_PATH"/*;
 do
     # Check if the current file in the loop is a regular file
     if [ -f "$library_script" ]; then
