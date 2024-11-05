@@ -11,10 +11,10 @@
 
 # MULTIPLE SOURCING GUARD
 
-# Prevent multiple sourcing of this script by exiting if INTERFACE_SH_INCLUDED 
-# is already set. Otherwise, set INTERFACE_SH_INCLUDED to mark it as sourced.
-[[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
-INTERFACE_SH_INCLUDED=1
+# Prevent multiple sourcing of this script by exiting if PARAMETERS_SH_INCLUDED
+# is already set. Otherwise, set PARAMETERS_SH_INCLUDED to mark it as sourced.
+[[ -n "${PARAMETERS_SH_INCLUDED}" ]] && return
+PARAMETERS_SH_INCLUDED=1
 
 # SOURCE DEPENDENCIES
 
@@ -270,18 +270,8 @@ extract_configuration_label_from_file()
 }
 
 
-check_gauge_configurations_label() {
-    local gauge_configurations_label="$1"
-
-    # Call match_configuration_label_to_file and check if it succeeds
-    if match_configuration_label_to_file "$gauge_configurations_label"; then
-        return 0  # Success
-    else
-        return 1  # Failure
-    fi
-}
-
-
+# TODO: Accept "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" as input for unit-testing
+# purposes
 match_configuration_label_to_file()
 {
 :   '
@@ -333,6 +323,8 @@ match_configuration_label_to_file()
     else
         echo "${files[0]}"
     fi
+
+    return 0
 }
 
 
@@ -393,323 +385,6 @@ check_lattice_dimensions()
 }
 
 
-is_integer()
-{
-:   '
-    is_integer() - Check if a value is an integer
-
-    This function takes a single input value and checks if it is an integer.
-    It uses a regular expression to determine if the value is an integer, which
-    can be either positive or negative. If the value is an integer, the function
-    outputs "1". Otherwise, it outputs "0".
-
-    Usage:
-    result=$(is_integer value)
-
-    Parameters:
-    value: The value to be checked. This can be any string.
-
-    Output:
-    1 if the value is an integer, otherwise 0.
-
-    Example:
-    result=$(is_integer 42)   # result will be "1"
-    result=$(is_integer -42)  # result will be "1"
-    result=$(is_integer 3.14) # result will be "0"
-    result=$(is_integer abc)  # result will be "0"
-    '
-
-    local value="$1"
-
-    # Check if the value is an integer using a regular expression
-    if [[ "$value" =~ ^-?[0-9]+$ ]]; then
-        echo 0  # Output 0 (true) if the value is an integer
-    else
-        echo 1  # Output 0 (false) if the value is not an integer
-    fi
-}
-
-
-is_positive_integer()
-{
-:   '
-    is_positive_integer() - Check if a value is a positive integer
-
-    This function takes a single input value and checks if it is a positive 
-    integer. It first checks if the value is an integer using the is_integer 
-    function. If the value is an integer and greater than zero, the function 
-    outputs "0". Otherwise, it outputs "1".
-
-    Usage:
-    result=$(is_positive_integer value)
-
-    Parameters:
-    value: The value to be checked. This can be any string.
-
-    Output:
-    0 if the value is a positive integer, otherwise 1.
-
-    Example:
-    result=$(is_positive_integer 42)   # result will be "0"
-    result=$(is_positive_integer -42)  # result will be "1"
-    result=$(is_positive_integer 3.14) # result will be "1"
-    result=$(is_positive_integer abc)  # result will be "1"
-    result=$(is_positive_integer 0)    # result will be "1"
-    '
-
-    local value="$1"
-
-    # Check if the value is an integer using the is_integer function
-    if [ $(is_integer "$value") -eq 0 ] && [ "$value" -gt 0 ]; then
-        echo 0  # Output 0 (true) if the value is a positive integer
-    else
-        echo 1  # Output 1 (false) if the value is not a positive integer
-    fi
-}
-
-
-is_non_negative_integer()
-{
-:   '
-    is_non_negative_integer() - Check if a value is a non-negative integer
-
-    This function takes a single input value and checks if it is a non-negative 
-    integer. It first checks if the value is an integer using the is_integer 
-    function. If the value is an integer and greater than or equal to zero, the 
-    function outputs "0". Otherwise, it outputs "1".
-
-    Usage:
-    result=$(is_non_negative_integer value)
-
-    Parameters:
-    value: The value to be checked. This can be any string.
-
-    Output:
-    0 if the value is a non-negative integer, otherwise 1.
-
-    Example:
-    result=$(is_non_negative_integer 42)   # result will be "0"
-    result=$(is_non_negative_integer -42)  # result will be "1"
-    result=$(is_non_negative_integer 3.14) # result will be "1"
-    result=$(is_non_negative_integer abc)  # result will be "1"
-    result=$(is_non_negative_integer 0)    # result will be "0"
-    '
-
-    local value="$1"
-
-    # Check if the value is an integer using the is_integer function
-    if [ $(is_integer "$value") -eq 0 ] && [ "$value" -ge 0 ]; then
-        echo 0  # Output 0 (true) if the value is a non-negative integer
-    else
-        echo 1  # Output 1 (false) if the value is not a non-negative integer
-    fi
-}
-
-
-is_float()
-{
-:   '
-    is_float() - Check if a value is a floating-point number
-
-    This function takes a single input value and checks if it is a
-    floating-point number. It uses a regular expression to determine if the 
-    value is a valid floating-point number, which can be either positive or
-    negative, and may contain a decimal point. If the value is a floating-point
-    number, the function outputs "0". Otherwise, it outputs "1".
-
-    Usage:
-    result=$(is_float value)
-
-    Parameters:
-    value: The value to be checked. This can be any string.
-
-    Output:
-    0 if the value is a floating-point number, otherwise 1.
-
-    Example:
-    result=$(is_float 42)       # result will be "0"
-    result=$(is_float -42.0)    # result will be "0"
-    result=$(is_float 3.14)     # result will be "0"
-    result=$(is_float abc)      # result will be "1"
-    result=$(is_float 3.14e-10) # result will be "0"
-    '
-
-    local value="$1"
-
-    # Check if the value is a floating-point number using a regular expression
-    if [[ "$value" =~ ^-?[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$ ]]; then
-    # if [[ "$value" =~ ^-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?$ ]]; then
-        # echo 0 
-        echo 0  # Output 0 (true) if the value is a floating-point number
-    else
-        echo 1  # Output 1 (false) if the value is not a floating-point number
-    fi
-}
-
-
-is_positive_float() {
-:   '
-    is_positive_float() - Check if a value is a positive floating-point number
-
-    This function takes a single input value and checks if it is a positive
-    floating-point number. It uses the is_float function to determine if the 
-    value is a valid floating-point number and additionally checks if it is 
-    positive. If the value is a positive floating-point number, the function 
-    outputs "0". Otherwise, it outputs "1".
-
-    Usage:
-    result=$(is_positive_float value)
-
-    Parameters:
-    value: The value to be checked. This can be any string.
-
-    Output:
-    0 if the value is a positive floating-point number, otherwise 1.
-
-    Example:
-    result=$(is_positive_float 42)     # result will be "0"
-    result=$(is_positive_float 3.14)   # result will be "0"
-    result=$(is_positive_float 3.14e-10) # result will be "0"
-    result=$(is_positive_float -42.0)  # result will be "1"
-    result=$(is_positive_float abc)    # result will be "1"
-    '
-
-    local value="$1"
-
-    # Check if the value is a float using the is_float function
-    if [[ $(is_float "$value") -eq 0 ]]; then
-        # Use awk to check if the value is greater than 0
-        if echo "$value" | awk '{exit ($1 <= 0)}'; then
-            # Output 0 (true) if value is a positive floating-point number
-            echo 0  
-        else
-            # Output 1 (false) if value is not a positive floating-point number
-            echo 1
-        fi
-    else
-        echo 1  # Output 1 (false) if the value is not a floating-point number
-    fi
-}
-
-
-
-check_rho_value()
-{
-:   '
-    check_rho_value() - Check if a value is a float within the range [0, 2]
-
-    This function takes a single input value and checks if it is a floating-point 
-    number within the range [0, 2]. It uses the is_float function to determine 
-    if the value is a valid floating-point number and additionally checks if it 
-    is within the specified range. If the value meets these criteria, the function 
-    outputs "0". Otherwise, it outputs "1".
-
-    Usage:
-    result=$(check_rho_value value)
-
-    Parameters:
-    value: The value to be checked. This can be any string.
-
-    Output:
-    0 if the value is a float within the range [0, 2], otherwise 1.
-
-    Example:
-    result=$(check_rho_value 1.5)   # result will be "0"
-    result=$(check_rho_value 2.1)   # result will be "1"
-    result=$(check_rho_value -1.0)  # result will be "1"
-    result=$(check_rho_value abc)   # result will be "1"
-    '
-
-    local value="$1"
-
-    # Check if the value is a float using the is_float function
-    if [[ $(is_float "$value") -eq 0 && $(echo "$value >= 0 && $value <= 2" | bc -l) -eq 1 ]]; then
-        echo 0  # Output 0 (true) if the value is a float within the range [0, 2]
-    else
-        echo 1  # Output 1 (false) if the value is not a float within the range [0, 2]
-    fi
-}
-
-
-check_clover_term_coefficient_value()
-{
-:   '
-    check_clover_term_coefficient_value() - Check if a value is a float within the range [0, 1]
-
-    This function takes a single input value and checks if it is a floating-point 
-    number within the range [0, 1]. It uses the is_float function to determine 
-    if the value is a valid floating-point number and additionally checks if it 
-    is within the specified range. If the value meets these criteria, the function 
-    outputs "0". Otherwise, it outputs "1".
-
-    Usage:
-    result=$(check_clover_term_coefficient_value value)
-
-    Parameters:
-    value: The value to be checked. This can be any string.
-
-    Output:
-    0 if the value is a float within the range [0, 1], otherwise 1.
-
-    Example:
-    result=$(check_clover_term_coefficient_value 0.5)   # result will be "0"
-    result=$(check_clover_term_coefficient_value 1.1)   # result will be "1"
-    result=$(check_clover_term_coefficient_value -0.5)  # result will be "1"
-    result=$(check_clover_term_coefficient_value abc)   # result will be "1"
-    '
-
-    local value="$1"
-
-    # Check if the value is a float using the is_float function
-    if [[ $(is_float "$value") -eq 0 && $(echo "$value >= 0 && $value <= 1" | bc -l) -eq 1 ]]; then
-        echo 0  # Output 0 (true) if the value is a float within the range [0, 1]
-    else
-        echo 1  # Output 1 (false) if the value is not a float within the range [0, 1]
-    fi
-}
-
-
-check_operator_type()
-{
-:   '
-    Function to check if a given operator type is valid.
-    Usage: check_operator_type $operator_type
-    Arguments:
-        * operator_type: The operator type to be checked against the valid 
-        operator types.
-    Output:
-        Prints 0 if the operator type is valid (i.e., it is one of the elements 
-        in OPERATOR_TYPES_ARRAY), otherwise 
-        prints 1 if it is not valid.
-    Example:
-        is_valid=$(check_operator_type "Brillouin")
-        if [ "$is_valid" -eq 0 ]; then
-            echo "Operator type is valid."
-        else
-            echo "Operator type is invalid."
-        fi
-    Notes:
-        - The function iterates over the OPERATOR_TYPES_ARRAY constant array to 
-        check for a match.
-        - The function prints 0 (true) if the operator type is found in the 
-        array.
-        - The function prints 1 (false) if the operator type is not found in the
-         array.
-    '
-
-    local operator_type="$1"
-
-    for valid_operator in "${OPERATOR_TYPES_ARRAY[@]}"; do
-        if [ "$operator_type" == "$valid_operator" ]; then
-            echo 0  # True
-            return
-        fi
-    done
-
-    echo 1  # False
-}
-
-
 calculate_kappa_value() {
     : '
     Function: calculate_kappa_value
@@ -728,7 +403,8 @@ calculate_kappa_value() {
     # Use bc to perform the calculation with high precision
     kappa_value=$(echo "scale=20; 0.5 / (4 + $bare_mass)" | bc)
 
-    # Print the kappa_value value to the console, trimming trailing zeros in the decimal part
+    # Print the kappa_value value to the console, trimming trailing zeros in the
+    # decimal part
     printf "%.16f\n" "$kappa_value" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
 }
 
@@ -755,121 +431,6 @@ calculate_bare_mass_from_kappa_value() {
     printf "%.16f\n" "$bare_mass" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
 }
 
-
-general_range_of_values_generator()
-{
-:   '
-    Function to construct a range of values (integer or float) given a start, 
-    end, and step.
-    Usage: general_range_of_values_generator $start $end $step
-    Arguments:
-        * start: The starting value of the range (integer or float).
-        * end: The ending value of the range (integer or float).
-        * step: The increment (positive or negative) between consecutive values 
-        in the range (integer or float).
-    Output:
-        A space-separated string of values representing the range from start 
-        to end, inclusive, incremented by step. If step is zero, the function 
-        prints an error message and returns 1.
-    Example:
-        range=$(general_range_of_values_generator 1 10 2)
-        This sets range to "1 3 5 7 9".
-    Notes:
-        - The function handles both positive and negative steps.
-        - If start is less than or equal to end, the function generates an 
-        increasing sequence.
-        - If start is greater than or equal to end, the function generates a 
-        decreasing sequence.
-        - The function supports both integer and floating-point values, 
-        including those in exponential form.
-    '
-
-    # Helper function
-    trim_whitespace()
-    {
-    :   '
-        Function: trim_whitespace
-
-        Description:
-        Trims leading and trailing whitespace from a given string. This function 
-        is useful for cleaning up strings that may have extra spaces at the 
-        beginning or end, which can interfere with string comparisons and other 
-        operations.
-
-        Parameters:
-        1. var: The input string that needs to be trimmed of leading and trailing 
-        whitespace.
-
-        Output:
-        Prints the trimmed string without leading or trailing whitespace.
-
-        Usage:
-        trimmed_string=$(trim_whitespace "  example string  ")
-
-        Example:
-        input_string="   some text with spaces   "
-        trimmed_string=$(trim_whitespace "$input_string")
-        # trimmed_string now contains "some text with spaces"
-
-        Notes:
-        - This function uses Bash string manipulation techniques to remove 
-        whitespace.
-        - The function does not modify the original string but outputs the trimmed 
-        result.
-        '
-
-      local var="$*"
-      
-      # Remove leading and trailing whitespace
-      var="${var#"${var%%[![:space:]]*}"}"
-      var="${var%"${var##*[![:space:]]}"}"
-      
-      echo -n "$var"
-    }
-
-
-    local start="$1"
-    local end="$2"
-    local step="$3"
-
-    local range=()
-    local is_exponential=FALSE
-
-    # Check if any of the arguments are in exponential form
-    if [[ "$start" == *[eE]* || "$end" == *[eE]* || "$step" == *[eE]* ]]; then
-        is_exponential=TRUE
-
-        # Convert exponential form to decimal format
-        start=$(awk -v num="$start" 'BEGIN { print num + 0 }')
-        end=$(awk -v num="$end" 'BEGIN { print num + 0 }')
-        step=$(awk -v num="$step" 'BEGIN { print num + 0 }')
-    fi
-
-    # Determine precision of step
-    precision=$(\
-      echo "$step" | awk -F. '{ if (NF==1) print 0; else print length($2) }')
-
-    # Use awk to generate the range of values
-    range=$(awk -v start="$start" -v \
-                        end="$end" -v step="$step" -v precision="$precision" '
-    BEGIN {
-        format = "%." precision "f"
-        for (i = start; (step > 0 ? i <= end : i >= end); i += step) {
-            printf format " ", i
-        }
-    }')
-
-    # Convert to exponential form if originally in exponential form
-    if [ "$is_exponential" == TRUE ]; then
-        range=$(echo "$range" | awk -v precision="$precision" '{
-            for (i = 1; i <= NF; i++) {
-                printf "%." precision "e ", $i
-            }
-        }')
-    fi
-
-    echo $(trim_whitespace "$range")
-}
 
 
 # TODO: The output of this function is not that useful
@@ -1363,3 +924,244 @@ convert_mpi_geometry_to_number_of_tasks()
   echo $product
 }
 
+############################ UNIT-TESTED FUNCTIONS #############################
+
+general_range_of_values_generator()
+{
+:   '
+    Function to construct a range of values (integer or float) given a start, 
+    end, and step.
+    Usage: general_range_of_values_generator $start $end $step
+    Arguments:
+        * start: The starting value of the range (integer or float).
+        * end: The ending value of the range (integer or float).
+        * step: The increment (positive or negative) between consecutive values 
+        in the range (integer or float).
+    Output:
+        A space-separated string of values representing the range from start 
+        to end, inclusive, incremented by step. If step is zero, the function 
+        prints an error message and returns 1.
+    Example:
+        range=$(general_range_of_values_generator 1 10 2)
+        This sets range to "1 3 5 7 9".
+    Notes:
+        - The function handles both positive and negative steps.
+        - If start is less than or equal to end, the function generates an 
+        increasing sequence.
+        - If start is greater than or equal to end, the function generates a 
+        decreasing sequence.
+        - The function supports both integer and floating-point values, 
+        including those in exponential form.
+    '
+
+    # Helper function
+    trim_whitespace()
+    {
+    :   '
+        Function: trim_whitespace
+
+        Description:
+        Trims leading and trailing whitespace from a given string. This function 
+        is useful for cleaning up strings that may have extra spaces at the 
+        beginning or end, which can interfere with string comparisons and other 
+        operations.
+
+        Parameters:
+        1. var: The input string that needs to be trimmed of leading and trailing 
+        whitespace.
+
+        Output:
+        Prints the trimmed string without leading or trailing whitespace.
+
+        Usage:
+        trimmed_string=$(trim_whitespace "  example string  ")
+
+        Example:
+        input_string="   some text with spaces   "
+        trimmed_string=$(trim_whitespace "$input_string")
+        # trimmed_string now contains "some text with spaces"
+
+        Notes:
+        - This function uses Bash string manipulation techniques to remove 
+        whitespace.
+        - The function does not modify the original string but outputs the trimmed 
+        result.
+        '
+
+      local var="$*"
+      
+      # Remove leading and trailing whitespace
+      var="${var#"${var%%[![:space:]]*}"}"
+      var="${var%"${var##*[![:space:]]}"}"
+      
+      echo -n "$var"
+    }
+
+    local start="$1"
+    local end="$2"
+    local step="$3"
+
+    local range=()
+    local is_exponential=FALSE
+
+    # Check if any of the arguments are in exponential form
+    if [[ "$start" == *[eE]* || "$end" == *[eE]* || "$step" == *[eE]* ]]; then
+        is_exponential=TRUE
+
+        # Convert exponential form to decimal format
+        start=$(awk -v num="$start" 'BEGIN { printf "%.25f", num }')
+        end=$(awk -v num="$end" 'BEGIN { printf "%.25f", num }')
+        step=$(awk -v num="$step" 'BEGIN { printf "%.25f", num }')
+    fi
+
+    # Determine precision
+    local precision
+    if [ "$is_exponential" == FALSE ]; then
+        # If not exponential, calculate precision based on step
+        precision=$(echo "$step" | awk -F. '{ if (NF==1) print 0; else print length($2) }')
+    else
+        # For exponential form, use precision based on the smallest of start, end, and step
+        # smallest_value=$(awk 'BEGIN { print ('"$start"' < '"end"' ? ('"$start"' < '"step"' ? '"start"' : '"step"') : ('"$end"' < '"step"' ? '"end"' : '"step"')) }')
+        # precision=$(echo "$smallest_value" | awk -F. '{ if (NF==1) print 0; else print length($2) }')
+
+        # For exponential form, use precision based on the smaller of start and end
+        smallest_value=$(awk 'BEGIN { print ('"$start"' < '"end"' ? '"start"' : '"end"') }')
+        precision=$(echo "$smallest_value" | awk -F. '{ if (NF==1) print 0; else print length($2) }')
+
+    fi
+
+
+    # Use awk to generate the range of values
+    if [ "$is_exponential" == FALSE ]; then
+        range=$(awk -v start="$start" -v \
+                            end="$end" -v step="$step" -v precision="$precision" '
+        BEGIN {
+            format = "%." precision "f"
+            for (i = start; (step > 0 ? i <= end : i >= end); i += step) {
+                printf format " ", i
+            }
+        }')
+
+    else
+    # for (i = start; (step > 1 ? i <= end : i >= end); i *= step) {
+        range=$(awk -v start="$start" -v \
+                            end="$end" -v step="$step" -v precision="$precision" '
+        BEGIN {
+            format = "%." precision "f"
+            for (i = start; (start < end ? i <= end : i >= end); i *= step) {
+                printf format " ", i
+            }
+        }')
+    fi
+
+    # Convert to exponential form if originally in exponential form
+    if [ "$is_exponential" == TRUE ]; then
+        range=$(echo "$range" | awk -v precision="$precision" '{
+            for (i = 1; i <= NF; i++) {
+                printf "%." precision "e ", $i
+            }
+        }')
+    fi
+
+    echo $(trim_whitespace "$range")
+}
+
+
+parameter_range_of_values_generator()
+{
+    :   '
+    Description:
+    Generates a range of parameter values using the specified helper function.
+    Assumes the validity of the range string format "[start end step]".
+
+    Parameters:
+    1. helper_function: The name of the function that generates the parameter 
+    range.
+    2. range_variable_name: The name of the variable that holds the range string
+    in the format "[start end step]".
+
+    Output:
+    Prints the generated range of values as output from the helper function.
+
+    Example:
+    parameter_range_of_values_generator parameter_range_generator "INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES"
+    '
+
+    local helper_function="$1"
+    local range_variable_name="$2"
+
+    # Create a name reference to the range variable
+    declare -n range_string="$range_variable_name"
+
+    # Remove square brackets from range_string and extract start, end, and step
+    range_string="${range_string//[\[\]]/}"
+    
+    # Extract start, end, and step from the range_string
+    IFS=' ' read -r start end step <<< "${range_string}"
+
+    # Call the helper function with start, end, and step arguments
+    output_array=($("$helper_function" "$start" "$end" "$step"))
+
+    # Print each value in the output_array
+    echo "${output_array[@]}"
+}
+
+
+exponential_range_of_values_generator() {
+    : '
+    Function: exponential_range_of_values_generator
+
+    Description:
+      Generates a range of values in exponential form, based on integer exponents.
+      Expects inputs in the form "1e{exponent}", with all exponents being integers.
+      If the inputs deviate from this form, the function returns 1.
+
+    Arguments:
+      - start: Starting value in the form "1e{start_exponent}"
+      - end: Ending value in the form "1e{end_exponent}"
+      - step: Step value in the form "1e{step_exponent}"
+
+    Output:
+      A space-separated list of values in exponential notation (e.g., "1e-2 1e-4 1e-6"),
+      representing the range from start to end, inclusive.
+
+    Example:
+      exponential_range_of_values_generator "1e1" "1e3" "1e1"
+      Output: "1e+01 1e+02 1e+03"
+
+    Returns:
+      0 on success, 1 on failure (e.g., if input format is incorrect).
+    '
+
+    # Helper function to validate and extract exponent from "1e{exponent}" form
+    extract_exponent() {
+        local value="$1"
+        if [[ "$value" =~ ^1e(-?[0-9]+)$ ]]; then
+            echo "${BASH_REMATCH[1]}"
+        else
+            return 1  # Invalid format
+        fi
+    }
+
+    # Extract exponents or return 1 if any argument is invalid
+    local start_exponent end_exponent step_exponent
+    start_exponent=$(extract_exponent "$1") || return 1
+    end_exponent=$(extract_exponent "$2") || return 1
+    step_exponent=$(extract_exponent "$3") || return 1
+
+    # Generate range of values based on direction
+    local range=()
+    if (( start_exponent <= end_exponent )); then
+        for (( exp=start_exponent; exp<=end_exponent; exp+=step_exponent )); do
+            range+=("1e$exp")
+        done
+    else
+        for (( exp=start_exponent; exp>=end_exponent; exp+=step_exponent )); do
+            range+=("1e$exp")
+        done
+    fi
+
+    # Output the range as a space-separated string
+    echo "${range[@]}"
+    return 0
+}
