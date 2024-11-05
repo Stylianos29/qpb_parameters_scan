@@ -175,7 +175,7 @@ log "INFO" "All files will be copied inside the "\
 # CONSTRUCT SETUP FILES LIST
 
 SETUP_FILES_LIST=("input.txt" "input_file_instructions.md" "scan.sh"\
-                                                        "usage.sh" "update.sh")
+                                                "usage.sh" "update.sh" "run.sh")
 
 # NOTE: An empty parameters file, selected based on the destination directory
 # path, needs to be also included in the setup files list to be copied.
@@ -230,7 +230,8 @@ WARNING_MESSAGE=\
 \n# ====================================================================="
 target_line="#!/bin/bash"
 for copied_setup_file in "${SETUP_FILES_LIST[@]}"; do
-    if [[ "$copied_setup_file" == *.sh ]]; then
+    if [[ "$copied_setup_file" == *.sh && "$copied_setup_file" != "run.sh" ]];
+    then # Ignore "run.sh" which is supposed to be modified
         copied_setup_file_full_path="${DESTINATION_SETUP_DIRECTORY_PATH}/"
         copied_setup_file_full_path+="${copied_setup_file}"
         insert_message "$copied_setup_file_full_path" "$target_line" \
