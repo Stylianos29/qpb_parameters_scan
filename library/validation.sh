@@ -11,10 +11,10 @@
 
 # MULTIPLE SOURCING GUARD
 
-# Prevent multiple sourcing of this script by exiting if INTERFACE_SH_INCLUDED 
-# is already set. Otherwise, set INTERFACE_SH_INCLUDED to mark it as sourced.
-[[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
-INTERFACE_SH_INCLUDED=1
+# Prevent multiple sourcing of this script by exiting if VALIDATION_SH_INCLUDED
+# is already set. Otherwise, set VALIDATION_SH_INCLUDED to mark it as sourced.
+[[ -n "${VALIDATION_SH_INCLUDED}" ]] && return
+VALIDATION_SH_INCLUDED=1
 
 # SOURCE DEPENDENCIES
 
@@ -151,7 +151,7 @@ copy_file_and_check()
     if [ $? -ne 0 ]; then
         # If copy fails, output error and terminate script
         local error_message="Copying '$(basename "$source_file")' file failed."
-        termination_output "$error_message" "$SCRIPT_TERMINATION_MESSAGE"
+        termination_output "$error_message"
         return 1  # Return 1 for failure
     fi
 
@@ -245,43 +245,6 @@ validate_indices_array()
 }
 
 
-is_range_string()
-{
-:   '
-    Function: is_range_string
-    
-    Description:
-      Checks if a variable (passed by name) contains a string formatted as a 
-      range string enclosed in square brackets. A range string consists of 
-      three numerical values (integers or floats) separated by spaces, enclosed 
-      in square brackets.
-    
-    Parameters:
-      var_name: The name of the variable to be checked.
-    
-    Returns:
-      Returns 0 if the variable matches the range string format, otherwise 
-      returns 1.
-    
-    Example:
-      # Checks if the variable contains a valid range string
-      is_range_string OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES
-    '
-
-    local var_name="$1"
-
-    # Use name reference to access the variable content
-    local -n var_value="$var_name"
-
-    # Check if the content matches the range string format
-    if [[ $var_value =~ ^\[[0-9]+(\.[0-9]+)?[[:space:]][0-9]+(\.[0-9]+)?[[:space:]][0-9]+(\.[0-9]+)?\]$ ]]; then
-        return 0  # True: It is a range string
-    else
-        return 1  # False: It is not a range string
-    fi
-}
-
-
 # TODO: It needs to be retired
 is_range_string_old()
 {
@@ -338,7 +301,7 @@ is_range_string_old()
 
 # Function to validate a varying parameter values array
 # Takes the name of the array as input
-# TODO: Log output
+# TODO: Log output properly
 validate_varying_parameter_values_array()
 {
     local parameter_name="$1"
@@ -373,20 +336,18 @@ local -n varying_parameter_values_array="$varying_parameter_values_array_name"
         fi
     done
 
-    # TODO: Perform a proper check of input config labels
-    # TODO: Change check function to give no output
-    if [[ $parameter_name != "GAUGE_LINKS_CONFIGURATION_LABEL" ]]; then
-        # Check validity of each element of the varying parameter values array
-        local validating_function="\
-                ${MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY[$parameter_name]}"
-        for element in "${varying_parameter_values_array[@]}"; do
-            if [ $($validating_function "$element") -ne 0 ]; then 
-                echo "Error. '${varying_parameter_values_array[*]}' array contains"\
-                    "invalid elements with respect to the chosen varying parameter."
-                return 1
-            fi
-        done
-    fi
+    # Create a shorter alias for parameters validation functions dictionary
+    declare -n checks_dict=MODIFIABLE_PARAMETERS_VALIDATION_FUNCTIONS_DICTIONARY
+
+    local validating_function="${checks_dict[$parameter_name]}"
+    for element in "${varying_parameter_values_array[@]}"; do
+        if ! $validating_function "$element"; then
+            local error_message="Invalid element '$element' passed to the "
+            error_message+="'$varying_parameter_values_array_name' array."
+            echo "$error_message"
+            return 1
+        fi
+    done
 
     return 0
 }
@@ -725,7 +686,7 @@ validate_varying_parameter_values_array_old()
         # parameter values array
         # TODO: I need to find a way to handle error
         local range_of_values_function=\
-"${MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY[$parameter_name]}"
+"${MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATORS_DICTIONARY[$parameter_name]}"
 
         local parameter_range_of_values_string=$(\
             parameter_range_of_values_generator "$range_of_values_function"\
@@ -762,7 +723,7 @@ validate_varying_parameter_values_array_old()
     # Check validity of each element of the varying parameter values array
     if [ "$parameter_name" != "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" ]; then
         local test_function="\
-            ${MODIFIABLE_PARAMETERS_CHECK_FUNCTION_DICTIONARY[$parameter_name]}"
+            ${MODIFIABLE_PARAMETERS_VALIDATION_FUNCTIONS_DICTIONARY[$parameter_name]}"
         for element in "${parameter_values_array[@]}"; do
             if [ $($test_function "$element") -ne 0 ]; then
                 echo "Error. '${parameter_values_array[*]}' array contains"\
@@ -914,3 +875,418 @@ check_walltime() {
     termination_output "${error_message}" "${SCRIPT_TERMINATION_MESSAGE}"
     return 1  # Not valid input
 }
+
+############################ UNIT-TESTED FUNCTIONS #############################
+
+is_integer() {
+:   '
+    is_integer() - Check if a value is an integer
+
+    This function takes a single input value and checks if it is an integer.
+    It uses a regular expression to determine if the value is an integer,
+    which can be either positive or negative. If the value is an integer,
+    the function returns 0 (success). Otherwise, it returns 1 (failure).
+
+    Usage:
+    if is_integer value; then
+        echo "Value is an integer"
+    else
+        echo "Value is not an integer"
+    fi
+
+    Parameters:
+    value: The value to be checked. This can be any string.
+
+    Returns:
+    0 if the value is an integer, otherwise 1.
+
+    Example:
+    is_integer 42    # returns 0 (true)
+    is_integer -42   # returns 0 (true)
+    is_integer 3.14  # returns 1 (false)
+    is_integer abc   # returns 1 (false)
+    '
+
+    local value="$1"
+
+    # Check if the value is an integer using a regular expression
+    if [[ "$value" =~ ^-?[0-9]+$ ]]; then
+        return 0  # Return 0 (success) if the value is an integer
+    else
+        return 1  # Return 1 (failure) if the value is not an integer
+    fi
+}
+
+
+is_positive_integer() {
+:   '
+    is_positive_integer() - Check if a value is a positive integer
+
+    This function takes a single input value and checks if it is a positive integer.
+    It first calls is_integer() to ensure the value is an integer, then checks if 
+    the value is positive. If both conditions are met, the function returns 0 (success).
+    Otherwise, it returns 1 (failure).
+
+    Usage:
+    if is_positive_integer value; then
+        echo "Value is a positive integer"
+    else
+        echo "Value is not a positive integer"
+    fi
+
+    Parameters:
+    value: The value to be checked. This can be any string.
+
+    Returns:
+    0 if the value is a positive integer, otherwise 1.
+
+    Example:
+    is_positive_integer 42    # returns 0 (true)
+    is_positive_integer 0     # returns 1 (false)
+    is_positive_integer -42   # returns 1 (false)
+    is_positive_integer 3.14  # returns 1 (false)
+    is_positive_integer abc   # returns 1 (false)
+    '
+
+    local value="$1"
+
+    # First, check if the value is an integer
+    if is_integer "$value" && [ "$value" -gt 0 ]; then
+        return 0  # Return 0 (success) if the value is a positive integer
+    else
+        return 1  # Return 1 (failure) if the value is not a positive integer
+    fi
+}
+
+
+is_non_negative_integer() {
+:   '
+    is_non_negative_integer() - Check if a value is a non-negative integer
+
+    This function takes a single input value and checks if it is a non-negative
+    integer. It first calls is_integer() to ensure the value is an integer, then
+    checks if the value is zero or positive. If both conditions are met, the
+    function returns 0 (success). Otherwise, it returns 1 (failure).
+
+    Usage:
+    if is_non_negative_integer value; then
+        echo "Value is a non-negative integer"
+    else
+        echo "Value is not a non-negative integer"
+    fi
+
+    Parameters:
+    value: The value to be checked. This can be any string.
+
+    Returns:
+    0 if the value is a non-negative integer, otherwise 1.
+
+    Example:
+    is_non_negative_integer 42    # returns 0 (true)
+    is_non_negative_integer 0     # returns 0 (true)
+    is_non_negative_integer -42   # returns 1 (false)
+    is_non_negative_integer 3.14  # returns 1 (false)
+    is_non_negative_integer abc    # returns 1 (false)
+    '
+
+    local value="$1"
+
+    # First, check if the value is an integer
+    if is_integer "$value" && [ "$value" -ge 0 ]; then
+        return 0  # Return 0 (success) if the value is a non-negative integer
+    else
+        return 1  # Return 1 (failure) if the value is not a non-negative integer
+    fi
+}
+
+
+is_float() {
+:   '
+    is_float() - Check if a value is a floating-point number
+
+    This function takes a single input value and checks if it is a
+    floating-point number. It uses a regular expression to determine if the 
+    value is a valid floating-point number, which can be either positive or
+    negative, and may contain a decimal point. If the value is a floating-point
+    number, the function returns 0. Otherwise, it returns 1.
+
+    Usage:
+    result=$(is_float value)
+
+    Parameters:
+    value: The value to be checked. This can be any string.
+
+    Output:
+    0 if the value is a floating-point number, otherwise 1.
+
+    Example:
+    result=$(is_float 42)       # result will be "0"
+    result=$(is_float -42.0)    # result will be "0"
+    result=$(is_float 3.14)     # result will be "0"
+    result=$(is_float abc)      # result will be "1"
+    result=$(is_float 3.14e-10) # result will be "0"
+    '
+
+    local value="$1"
+
+    # Check if the value is a floating-point number using a regular expression
+    if [[ "$value" =~ ^-?[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$ ]]; then
+        return 0  # Return 0 (true) if the value is a floating-point number
+    else
+        return 1  # Return 1 (false) if the value is not a floating-point number
+    fi
+}
+
+
+is_positive_float() {
+:   '
+    is_positive_float() - Check if a value is a positive floating-point number
+
+    This function takes a single input value and checks if it is a positive
+    floating-point number. It first calls is_float() to ensure the value is
+    a floating-point number, then checks if the value is positive. If both
+    conditions are met, the function returns 0 (success). Otherwise, it returns
+    1 (failure).
+
+    Usage:
+    if is_positive_float value; then
+        echo "Value is a positive float"
+    else
+        echo "Value is not a positive float"
+    fi
+
+    Parameters:
+    value: The value to be checked. This can be any string.
+
+    Returns:
+    0 if the value is a positive floating-point number, otherwise 1.
+
+    Example:
+    is_positive_float 3.14     # returns 0 (true)
+    is_positive_float 0.0      # returns 1 (false)
+    is_positive_float -3.14    # returns 1 (false)
+    is_positive_float abc       # returns 1 (false)
+    is_positive_float 3.14e-10  # returns 0 (true)
+    '
+
+    local value="$1"
+
+    # First, check if the value is a floating-point number
+    if is_float "$value" && awk 'BEGIN { exit !('"$value"' > 0) }'; then
+        return 0  # Return 0 (success) if the value is a positive float
+    else
+        return 1  # Return 1 (failure) if the value is not a positive float
+    fi
+}
+
+
+is_non_negative_float() {
+:   '
+    is_non_negative_float() - Check if a value is a non-negative floating-point number
+
+    This function takes a single input value and checks if it is a non-negative
+    floating-point number. It first calls is_float() to ensure the value is
+    a floating-point number, then checks if the value is non-negative. If both
+    conditions are met, the function returns 0 (success). Otherwise, it returns
+    1 (failure).
+
+    Usage:
+    if is_non_negative_float value; then
+        echo "Value is a non-negative float"
+    else
+        echo "Value is not a non-negative float"
+    fi
+
+    Parameters:
+    value: The value to be checked. This can be any string.
+
+    Returns:
+    0 if the value is a non-negative floating-point number, otherwise 1.
+
+    Example:
+    is_non_negative_float 3.14     # returns 0 (true)
+    is_non_negative_float 0.0      # returns 0 (true)
+    is_non_negative_float -3.14    # returns 1 (false)
+    is_non_negative_float abc      # returns 1 (false)
+    is_non_negative_float 3.14e-10 # returns 0 (true)
+    '
+
+    local value="$1"
+
+    # First, check if the value is a floating-point number
+    if is_float "$value" && awk 'BEGIN { exit !('"$value"' >= 0) }'; then
+        return 0  # Return 0 (success) if the value is a non-negative float
+    else
+        return 1  # Return 1 (failure) if the value is not a non-negative float
+    fi
+}
+
+
+is_valid_rho_value() {
+:   '
+    is_valid_rho_value() - Check if a value is a valid rho value
+
+    This function takes a single input value and checks if it is a valid
+    rho value, which must be a float between 0 and 2, inclusive. It first
+    calls is_float() to ensure the value is a float, then checks if the
+    value is within the specified range. If both conditions are met,
+    the function returns 0 (success). Otherwise, it returns 1 (failure).
+
+    Usage:
+    if is_valid_rho_value rho_value; then
+        echo "Value is a valid rho value"
+    else
+        echo "Value is not a valid rho value"
+    fi
+
+    Parameters:
+    rho_value: The value to be checked. This can be any string.
+
+    Returns:
+    0 if the value is a valid rho value, otherwise 1.
+
+    Example:
+    is_valid_rho_value 1.5    # returns 0 (true)
+    is_valid_rho_value 2      # returns 0 (true)
+    is_valid_rho_value 0      # returns 0 (true)
+    is_valid_rho_value 2.1    # returns 1 (false)
+    is_valid_rho_value -0.5   # returns 1 (false)
+    is_valid_rho_value abc     # returns 1 (false)
+    '
+
+    local rho_value="$1"
+
+    # First, check if the value is a float
+    if is_float "$rho_value" && awk -v val="$rho_value" 'BEGIN { exit !(val >= 0 && val <= 2) }'; then
+        return 0  # Return 0 (success) if the value is a valid rho value
+    else
+        return 1  # Return 1 (failure) if the value is not a valid rho value
+    fi
+}
+
+
+is_valid_clover_term_coefficient() {
+:   '
+    is_valid_clover_term_coefficient() - Check if a value is a valid clover term
+    coefficient
+
+    This function takes a single input value and checks if it is a valid
+    clover term coefficient, which must be a float between 0 and 1, inclusive.
+    It first calls is_float() to ensure the value is a float, then checks if the
+    value is within the specified range. If both conditions are met, the
+    function returns 0 (success). Otherwise, it returns 1 (failure).
+
+    Usage:
+    if is_valid_clover_term_coefficient clover_term_coefficient; then
+        echo "Value is a valid clover term coefficient"
+    else
+        echo "Value is not a valid clover term coefficient"
+    fi
+
+    Parameters:
+    clover_term_coefficient: The value to be checked. This can be any string.
+
+    Returns:
+    0 if the value is a valid clover term coefficient, otherwise 1.
+
+    Example:
+    is_valid_clover_term_coefficient 0.5    # returns 0 (true)
+    is_valid_clover_term_coefficient 1.0    # returns 0 (true)
+    is_valid_clover_term_coefficient 0.0    # returns 0 (true)
+    is_valid_clover_term_coefficient 1.1    # returns 1 (false)
+    is_valid_clover_term_coefficient -0.1   # returns 1 (false)
+    is_valid_clover_term_coefficient abc     # returns 1 (false)
+    '
+
+    local clover_term_coefficient="$1"
+
+    # First, check if the value is a float
+    if is_float "$clover_term_coefficient" && awk -v val="$clover_term_coefficient" 'BEGIN { exit !(val >= 0 && val <= 1) }'; then
+        return 0  # Return 0 (success) if the value is a valid clover term coefficient
+    else
+        return 1  # Return 1 (failure) if the value is not a valid clover term coefficient
+    fi
+}
+
+# TODO: Accept "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" as input for unit-testing
+# purposes
+is_valid_gauge_links_configuration_label() {
+    local gauge_configurations_label="$1"
+
+    # Call match_configuration_label_to_file, discarding output
+    if match_configuration_label_to_file "$gauge_configurations_label" >/dev/null 2>&1; then
+        return 0  # Success
+    else
+        return 1  # Failure
+    fi
+}
+
+
+# is_range_string()
+# {
+# :   '
+#     Function: is_range_string
+    
+#     Description:
+#       Checks if a variable (passed by name) contains a string formatted as a 
+#       range string enclosed in square brackets. A range string consists of 
+#       three numerical values (integers or floats) separated by spaces, enclosed 
+#       in square brackets.
+    
+#     Parameters:
+#       var_name: The name of the variable to be checked.
+    
+#     Returns:
+#       Returns 0 if the variable matches the range string format, otherwise 
+#       returns 1.
+    
+#     Example:
+#       # Checks if the variable contains a valid range string
+#       is_range_string OUTER_LOOP_VARYING_PARAMETER_SET_OF_VALUES
+#     '
+
+#     local var_name="$1"
+
+#     # Use name reference to access the variable content
+#     local -n var_value="$var_name"
+
+#     # Check if the content matches the range string format
+#     if [[ $var_value =~ ^\[[0-9]+(\.[0-9]+)?[[:space:]][0-9]+(\.[0-9]+)?[[:space:]][0-9]+(\.[0-9]+)?\]$ ]]; then
+#         return 0  # True: It is a range string
+#     else
+#         return 1  # False: It is not a range string
+#     fi
+# }
+
+is_range_string() {
+:   '
+    Function: is_range_string
+    
+    Description:
+      Checks if a string contains a valid range string formatted as 
+      "[{START} {END} {STEP}]". A range string consists of three numerical 
+      values (integers or floats, including exponential form) separated by 
+      spaces (allowing for multiple spaces), enclosed in square brackets.
+    
+    Parameters:
+      range_string: The string to be checked.
+    
+    Returns:
+      Returns 0 if the string matches the range string format, otherwise 
+      returns 1.
+    
+    Example:
+      # Checks if the string contains a valid range string
+      is_range_string "[5 1 -1]"
+    '
+
+    local range_string="$1"
+
+    # Check if the content matches the range string format
+    if [[ $range_string =~ ^\[[+-]?([0-9]*[.])?[0-9]+([eE][+-]?[0-9]+)?[[:space:]]+[+-]?([0-9]*[.])?[0-9]+([eE][+-]?[0-9]+)?[[:space:]]+[+-]?([0-9]*[.])?[0-9]+([eE][+-]?[0-9]+)?\]$ ]]; then
+        return 0  # True: It is a valid range string
+    else
+        return 1  # False: It is not a valid range string
+    fi
+}
+
