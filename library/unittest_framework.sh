@@ -8,13 +8,13 @@
 #
 ######################################################################
 
-
 # MULTIPLE SOURCING GUARD
 
-# Prevent multiple sourcing of this script by exiting if INTERFACE_SH_INCLUDED 
-# is already set. Otherwise, set INTERFACE_SH_INCLUDED to mark it as sourced.
-[[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
-INTERFACE_SH_INCLUDED=1
+# Prevent multiple sourcing of this script by exiting if
+# UNITTEST_FRAMEWORK_SH_INCLUDED is already set. Otherwise, set
+# UNITTEST_FRAMEWORK_SH_INCLUDED to mark it as sourced.
+[[ -n "${UNITTEST_FRAMEWORK_SH_INCLUDED}" ]] && return
+UNITTEST_FRAMEWORK_SH_INCLUDED=1
 
 # SOURCE DEPENDENCIES
 
@@ -143,6 +143,49 @@ multiple_assert() {
     done
 
     return 0
+}
+
+
+multiple_validation_assert() {
+    # TODO: Write description
+
+    local function_to_test="$1"
+    local -n inputs="$2"            # Array of test inputs
+    local -n expected_outputs="$3"  # Array of expected outputs
+    local actual_output
+
+    # Check if the lengths of the inputs and expected_outputs arrays are the
+    # same
+    if [ "${#inputs[@]}" -ne "${#expected_outputs[@]}" ]; then
+        error_message="Error: The number of passed inputs (${#inputs[@]}) does "
+        error_message+="not match the number of passed expected outputs "
+        error_message+="(${#expected_outputs[@]})."
+        echo $error_message
+        return 1  # Return failure if lengths do not match
+    fi
+
+    for i in "${!inputs[@]}"; do
+        local test_input="${inputs[$i]}"
+        local expected="${expected_outputs[$i]}"
+
+        # Run the specified function and determine actual output
+        if "$function_to_test" "$test_input"; then
+            actual_output="True"
+        else
+            actual_output="False"
+        fi
+
+        # Compare actual and expected outputs, stop if there's a mismatch
+        if [ "$actual_output" != "$expected" ]; then
+            error_message="Test of function '$function_to_test' failed for "
+            error_message+="input '$test_input': expected '$expected', got "
+            error_message+="'$actual_output'."
+            echo "$error_message"
+            return 1  # Stop further iteration and return failure
+        fi
+    done
+
+    return 0  # Return success if all tests pass
 }
 
 

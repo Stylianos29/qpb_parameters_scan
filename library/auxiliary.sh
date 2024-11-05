@@ -33,10 +33,10 @@
 
 # MULTIPLE SOURCING GUARD
 
-# Prevent multiple sourcing of this script by exiting if INTERFACE_SH_INCLUDED 
-# is already set. Otherwise, set INTERFACE_SH_INCLUDED to mark it as sourced.
-[[ -n "${INTERFACE_SH_INCLUDED}" ]] && return
-INTERFACE_SH_INCLUDED=1
+# Prevent multiple sourcing of this script by exiting if AUXILIARY_SH_INCLUDED
+# is already set. Otherwise, set AUXILIARY_SH_INCLUDED to mark it as sourced.
+[[ -n "${AUXILIARY_SH_INCLUDED}" ]] && return
+AUXILIARY_SH_INCLUDED=1
 
 # SOURCE DEPENDENCIES
 
