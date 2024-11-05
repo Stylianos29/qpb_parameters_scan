@@ -507,8 +507,9 @@ echo -e "\n\t\t** JOBS SUBMISSION **\n" >> "$LOG_FILE_PATH"
 
 # CONSTRUCT PATH TO GENERIC JOB SUBMISSIONS SCRIPT
 
-GENERIC_SCRIPT_SCRIPT_FULL_PATH=$QPB_PARAMETERS_SCAN_PROJECT_DIRECTORY_FULL_PATH
-GENERIC_SCRIPT_SCRIPT_FULL_PATH+="/main_scripts/generic_run.sh"
+# TODO: Extract from input file
+GENERIC_SCRIPT_SCRIPT_PATH="./run.sh"
+GENERIC_SCRIPT_SCRIPT_FULL_PATH=$(realpath $GENERIC_SCRIPT_SCRIPT_PATH)
 if [ ! -f "$GENERIC_SCRIPT_SCRIPT_FULL_PATH" ]; then
     error_message="Invalid path to generic job submissions script.";
     termination_output "$error_message";
@@ -646,26 +647,27 @@ for overall_outer_loop_varying_parameter_value in \
             OUTPUT_FILE="${LOG_FILES_DIRECTORY}/${output_filename}.txt"
             ERROR_FILE="${LOG_FILES_DIRECTORY}/${output_filename}.err"
 
-            SBATCH_OPTIONS="--job-name=${JOB_NAME}"
-            SBATCH_OPTIONS+="--error=${ERROR_FILE}"
-            SBATCH_OPTIONS+="--output=${OUTPUT_FILE}"
-            SBATCH_OPTIONS+="--nodes=${NUMBER_OF_NODES}"
-            SBATCH_OPTIONS+="--time=${WALLTIME}"
+            SBATCH_OPTIONS="--job-name=${JOB_NAME} "
+            SBATCH_OPTIONS+="--error=${ERROR_FILE} "
+            SBATCH_OPTIONS+="--output=${OUTPUT_FILE} "
+            SBATCH_OPTIONS+="--nodes=${NUMBER_OF_NODES} "
+            SBATCH_OPTIONS+="--time=${WALLTIME} "
             if [ -n "${NTASKS_PER_NODE}" ]; then
-                SBATCH_OPTIONS+="--ntasks-per-node=${NTASKS_PER_NODE}"
+                SBATCH_OPTIONS+="--ntasks-per-node=${NTASKS_PER_NODE} "
             fi
             if [ -n "${PARTITION_NAME}" ]; then
-                SBATCH_OPTIONS+="--partition=${PARTITION_NAME}"
+                SBATCH_OPTIONS+="--partition=${PARTITION_NAME} "
             fi
             if [ -n "${ADDITIONAL_OPTIONS}" ]; then
-                SBATCH_OPTIONS+="${ADDITIONAL_OPTIONS}"
+                SBATCH_OPTIONS+="${ADDITIONAL_OPTIONS} "
             fi
 
             # Submit job
             sbatch ${SBATCH_OPTIONS} ${GENERIC_SCRIPT_SCRIPT_FULL_PATH} \
-                                ${MAIN_PROGRAM_EXECUTABLE} ${MPI_GEOMETRY} \
-                                    ${filled_parameters_file_full_path} \
-                                        ${NUMBER_OF_TASKS}
+                                        ${NUMBER_OF_TASKS} \
+                                        ${MAIN_PROGRAM_EXECUTABLE} \
+                                        ${MPI_GEOMETRY} \
+                                        ${filled_parameters_file_full_path} \
 
         done
     done
