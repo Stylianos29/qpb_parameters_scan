@@ -283,7 +283,7 @@ log "INFO" "Valid elements passed to 'VARYING_PARAMETERS_INDICES_LIST' array."
 # Create a shorter reference to the range generator functions dictionary 
 # for convenience
 declare -n \
-generators_dict="MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATOR_DICTIONARY"
+generators_dict="MODIFIABLE_PARAMETERS_RANGE_OF_VALUES_GENERATORS_DICTIONARY"
 
 # Check values passed to those "<>_VARYING_PARAMETER_SET_OF_VALUES" variables
 # among the three that correspond to the VARYING_PARAMETERS_INDICES_LIST values
@@ -313,13 +313,14 @@ for list_index in "${!VARYING_PARAMETERS_INDICES_LIST[@]}"; do
         exit 1
 
     # Check if a range of values was requested via input "[start end step]"
-    elif is_range_string $varying_parameter_set_of_values_array_name; then
+    elif is_range_string "${!varying_parameter_set_of_values_array_name}"; then
         log_message="A range of values was requested to populate the "
         log_message+="'${varying_parameter_set_of_values_array_name}' array."
         log "INFO" "$log_message"
         # If a range was requested, then choose range of values generator
         range_of_values_function="${generators_dict[$varying_parameter_name]}"
         # Generate parameter values for the specified range using this function
+        # TODO: Way too convoluted. I should untangle these functions
         parameter_range_of_values_string=$(parameter_range_of_values_generator \
                             "$range_of_values_function"\
                                 "$varying_parameter_set_of_values_array_name")
@@ -520,17 +521,19 @@ log "INFO" "Parameters files template was partially filled."
 check_mpi_geometry $MPI_GEOMETRY || { echo "Exiting..."; exit 1; }
 # The number of tasks is calculated automatically from the given MPI geometry
 NUMBER_OF_TASKS=($(convert_mpi_geometry_to_number_of_tasks $MPI_GEOMETRY))
-# TODO: Correct the output of the "is_integer" function
 # is_integer $NUMBER_OF_NODES || {
 #         error_message="Invalid 'NUMBER_OF_NODES' input value.";
 #         termination_output "${error_message}";
-#         echo "Exiting...";exit 1;
+#         exit 1;
 #     }
-# is_integer $NTASKS_PER_NODE || {
-#         error_message="Invalid 'NTASKS_PER_NODE' input value.";
-#         termination_output "${error_message}";
-#         echo "Exiting...";exit 1;
-#     }
+
+# if [ -n "${NTASKS_PER_NODE}" ]; then
+#     is_integer $NTASKS_PER_NODE || {
+#             error_message="Invalid 'NTASKS_PER_NODE' input value.";
+#             termination_output "${error_message}";
+#             exit 1;
+#         }
+# fi
 check_walltime $WALLTIME || { echo "Exiting..."; exit 1; }
 
 log "INFO" "sbatch options passed are valid."
@@ -643,21 +646,26 @@ for overall_outer_loop_varying_parameter_value in \
             OUTPUT_FILE="${LOG_FILES_DIRECTORY}/${output_filename}.txt"
             ERROR_FILE="${LOG_FILES_DIRECTORY}/${output_filename}.err"
 
-            # Submit job
-            # TODO: Add additional options
-            SBATCH_OPTIONS="--job-name=${JOB_NAME} \
-                            --error=${ERROR_FILE} \
-                            --output=${OUTPUT_FILE} \
-                            --nodes=${NUMBER_OF_NODES} \
-                            --ntasks-per-node=${NTASKS_PER_NODE} \
-                            --time=${WALLTIME} \
-                            --partition=${PARTITION_NAME}"
-                            # --reservation=short \
+            SBATCH_OPTIONS="--job-name=${JOB_NAME}"
+            SBATCH_OPTIONS+="--error=${ERROR_FILE}"
+            SBATCH_OPTIONS+="--output=${OUTPUT_FILE}"
+            SBATCH_OPTIONS+="--nodes=${NUMBER_OF_NODES}"
+            SBATCH_OPTIONS+="--time=${WALLTIME}"
+            if [ -n "${NTASKS_PER_NODE}" ]; then
+                SBATCH_OPTIONS+="--ntasks-per-node=${NTASKS_PER_NODE}"
+            fi
+            if [ -n "${PARTITION_NAME}" ]; then
+                SBATCH_OPTIONS+="--partition=${PARTITION_NAME}"
+            fi
+            if [ -n "${ADDITIONAL_OPTIONS}" ]; then
+                SBATCH_OPTIONS+="${ADDITIONAL_OPTIONS}"
+            fi
 
-            # sbatch ${SBATCH_OPTIONS} ${GENERIC_SCRIPT_SCRIPT_FULL_PATH} \
-            #                     ${MAIN_PROGRAM_EXECUTABLE} ${MPI_GEOMETRY} \
-            #                         ${filled_parameters_file_full_path} \
-            #                             ${NUMBER_OF_TASKS}
+            # Submit job
+            sbatch ${SBATCH_OPTIONS} ${GENERIC_SCRIPT_SCRIPT_FULL_PATH} \
+                                ${MAIN_PROGRAM_EXECUTABLE} ${MPI_GEOMETRY} \
+                                    ${filled_parameters_file_full_path} \
+                                        ${NUMBER_OF_TASKS}
 
         done
     done
