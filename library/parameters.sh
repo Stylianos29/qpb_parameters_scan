@@ -62,12 +62,21 @@ extract_overlap_operator_method()
     
     local path="$1"  # Input path
 
+    # Extract the relative path starting from "mainprogs"
+    relative_path="${path#*mainprogs/}"
+    # Check if "mainprogs" exists in the path
+    if [[ "$path" == *"mainprogs/"* ]]; then
+        # TODO: Log a WARNING that "mainprogs" directory was not found in path
+        # Extract the last 4 levels of the directory path
+        relative_path=$(echo "$path" | rev | cut -d'/' -f1-4 | rev)
+    fi
+
     # 1. Check for "Chebyshev", "chebyshev", or "CHEBYSHEV"
-    if [[ "$path" =~ [Cc][Hh][Ee][Bb][Yy][Ss][Hh][Ee][Vv] ]]; then
+    if [[ "$relative_path" =~ [Cc][Hh][Ee][Bb][Yy][Ss][Hh][Ee][Vv] ]]; then
         echo "Chebyshev"
 
     # 2. Check for "KL" or "kl"
-    elif [[ "$path" =~ [Kk][Ll] ]]; then
+    elif [[ "$relative_path" =~ [Kk][Ll] ]]; then
         echo "KL"
 
     # 3. Default case
