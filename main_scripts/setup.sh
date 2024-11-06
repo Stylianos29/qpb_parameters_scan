@@ -177,26 +177,27 @@ log "INFO" "All files will be copied inside the "\
 SETUP_FILES_LIST=("input.txt" "input_file_instructions.md" "scan.sh"\
                                                 "usage.sh" "update.sh" "run.sh")
 
-# NOTE: An empty parameters file, selected based on the destination directory
-# path, needs to be also included in the setup files list to be copied.
+# NOTE: An empty parameters file, determined by the destination directory
+# path, must also be included in the list of setup files to be copied.
 
-# Set default filename if destination path lacks "kl" or "Chebyshev" substrings
-empty_parameters_filename="Bare_"
-# Check if destination path contains "kl"
-if [[ "$DESTINATION_SETUP_DIRECTORY_PATH" == *"kl"* ]]; then
-        empty_parameters_filename="KL_"
-# Else check if destination path contains "Chebyshev"
-elif [[ "$DESTINATION_SETUP_DIRECTORY_PATH" == *"Chebyshev"* ]]; then
-        empty_parameters_filename="Chebyshev_"
-fi
-# Check if destination path contains "invert"
-if [[ "$DESTINATION_SETUP_DIRECTORY_PATH" == *"invert"* ]]; then
+# Extract the overlap operator method from the destination directory path
+overlap_operator_method=$(extract_overlap_operator_method \
+                                                "$DESTINATION_DIRECTORY_PATH")
+# Prefix for all empty parameters files is based on the overlap operator method
+empty_parameters_filename="${overlap_operator_method}_"
+# Check if the relative path (starting from "mainprogs") contains "invert"
+if [[ "${DESTINATION_DIRECTORY_PATH#*mainprogs/}" == *"invert"* ]]; then
+        # If "invert" is found, add "invert_" to the filename prefix
         empty_parameters_filename+="invert_"
 fi
-# And add the common suffix
+# Finalize the selected empty parameters filename by adding the common suffix
 empty_parameters_filename+="empty_parameters_file.ini"
-# Construct then the path of the empty parameters file to be copied
+# Construct then the path of the selected empty parameters file to be copied
 empty_parameters_file_path="./parameters_files/${empty_parameters_filename}"
+# Check if file exists as a safeguard
+error_message="Selected empty parameters file: $empty_parameters_file_path "
+error_message+="cannot be located."
+check_if_file_exists "$empty_parameters_file_path" "$error_message" || exit 1
 
 # Add selected empty parameters file path to setup files list
 SETUP_FILES_LIST+=("$empty_parameters_file_path")
