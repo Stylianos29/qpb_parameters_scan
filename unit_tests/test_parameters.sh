@@ -31,16 +31,41 @@ unittest_option=${1:-$unittest_option_default_value}
 
 # CUSTOM FUNCTIONS UNIT TESTS
 
+test_extract_overlap_operator_method()
+{
+    test_input_values_list=(
+            "/overlap-Chebyshev/multiple_runs.sh" \
+            "/overlap-chebyshev/multiple_runs.sh" \
+            "/overlap-CHEBYSHEV/multiple_runs.sh" \
+            "/overlap-KL/multiple_runs.sh" \
+            "/overlap-kl/multiple_runs.sh" \
+            "/mainprogs/multiple_runs.sh"
+        )
+    expected_output_values_list=(
+            "Chebyshev" \
+            "Chebyshev" \
+            "Chebyshev" \
+            "KL" \
+            "KL" \
+            "Bare"
+        )
+
+    multiple_assert extract_overlap_operator_method test_input_values_list \
+                                                    expected_output_values_list
+}
+
 # test_general_range_of_values_generator() {
 #     local range_of_values=$(general_range_of_values_generator "2" "20" "2")
 #     echo $range_of_values
 # }
 
 
-test_exponential_range_of_values_generator() {
-    local range_of_values=$(exponential_range_of_values_generator "1e-2" "1e-6" "1e-2")
-    echo $range_of_values
-}
+# test_exponential_range_of_values_generator() {
+#     local range_of_values=$(exponential_range_of_values_generator "1e-2" "1e-6" "1e-2")
+#     echo $range_of_values
+# }
+
+
 
 # test_extract_configuration_label_from_file()
 # {
