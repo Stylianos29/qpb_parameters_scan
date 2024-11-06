@@ -64,10 +64,10 @@ extract_overlap_operator_method()
 
     # Extract the relative path starting from "mainprogs"
     relative_path="${path#*mainprogs/}"
-    # Check if "mainprogs" exists in the path
-    if [[ "$path" == *"mainprogs/"* ]]; then
+    # Check if "mainprogs" was actually in the path
+    if [[ "$relative_path" == "$path" ]]; then
         # TODO: Log a WARNING that "mainprogs" directory was not found in path
-        # Extract the last 4 levels of the directory path
+        # If not, then extract the last 4 levels of the directory path
         relative_path=$(echo "$path" | rev | cut -d'/' -f1-4 | rev)
     fi
 
