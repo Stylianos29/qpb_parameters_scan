@@ -189,6 +189,23 @@ multiple_validation_assert() {
 }
 
 
+assert_array() {
+    # TODO: Write description
+
+    local -n tested_array_reference=$1
+    local -n expected_array_reference=$2
+
+    # Compare arrays as strings
+    if [[ "${tested_array_reference[*]}" == "${expected_array_reference[*]}" ]];
+     then
+        return 0  # Success
+    else
+        return 1  # Failure
+    fi
+}
+
+
+# TODO: Check if it's still useful
 array_assert() {
 :   '
     Function to assert the equality of two arrays
