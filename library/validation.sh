@@ -1290,3 +1290,21 @@ is_range_string() {
     fi
 }
 
+
+check_arrays_same_length() {
+    # TODO: Write description
+    
+    local array1_name=$1
+    local array2_name=$2
+
+    # Dereference array names to access their values
+    local -n array1=$array1_name
+    local -n array2=$array2_name
+
+    # Compare lengths of both arrays
+    if [[ ${#array1[@]} -eq ${#array2[@]} ]]; then
+        return 0  # Success
+    else
+        return 1  # Failure
+    fi
+}
