@@ -163,10 +163,26 @@ test_is_range_string()
 
 test_check_arrays_same_length()
 {
-    local test_array1=("1" "2" "3")
-    local test_array2=("apples" "oranges" "bananas")
+    local test_array1 test_array2
+    local test_passed="True"
+    
+    # Positive test
 
-    check_arrays_same_length test_array1 test_array2
+    test_array1=("1" "2" "3")
+    test_array2=("apples" "oranges" "bananas")
+
+    check_arrays_same_length test_array1 test_array2 || test_passed="False"
+
+    # Negative test
+
+    test_array1=("1" "2" "3")
+    test_array2=("apples" "oranges" "bananas" "peaches")
+
+    ! check_arrays_same_length test_array1 test_array2 || test_passed="False"
+
+    if [[ "$test_passed" == "False" ]]; then
+        return 1
+    fi
 }
 
 # test_extract_overlap_operator_method()
