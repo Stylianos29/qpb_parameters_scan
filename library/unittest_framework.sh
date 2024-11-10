@@ -192,8 +192,13 @@ multiple_validation_assert() {
 assert_array() {
     # TODO: Write description
 
-    local -n tested_array_reference=$1
-    local -n expected_array_reference=$2
+    local tested_array_name=$1
+    local expected_array_name=$2
+
+    check_arrays_same_length tested_array_name expected_array_name
+
+    local -n tested_array_reference=$tested_array_name
+    local -n expected_array_reference=$expected_array_name
 
     # Compare arrays as strings
     if [[ "${tested_array_reference[*]}" == "${expected_array_reference[*]}" ]];
