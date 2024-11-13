@@ -34,12 +34,16 @@ unittest_option=${1:-$unittest_option_default_value}
 test_extract_overlap_operator_method()
 {
     test_input_values_list=(
-            "/overlap-Chebyshev/multiple_runs.sh" \
-            "/overlap-chebyshev/multiple_runs.sh" \
-            "/overlap-CHEBYSHEV/multiple_runs.sh" \
-            "/overlap-KL/multiple_runs.sh" \
-            "/overlap-kl/multiple_runs.sh" \
-            "/mainprogs/multiple_runs.sh"
+            "/overlap-Chebyshev/scan.sh" \
+            "/overlap-chebyshev/scan.sh" \
+            "/overlap-CHEBYSHEV/scan.sh" \
+            "/overlap-KL/scan.sh" \
+            "/overlap-kl/scan.sh" \
+            "/mainprogs/scan.sh" \
+            "/nvme/h/cy22sg1/qpb_branches/KL_multishift_scaling/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh" \
+            "/nvme/h/cy22sg1/qpb_branches/KL_multishift_scaling/qpb/mainprogs/overlap-kl/invert/qpb_parameters_scan_files/scan.sh" \
+            "/nvme/h/cy22sg1/qpb_branches/Chebyshev_modified_eigenvalues/qpb/mainprogs/overlap-Chebyshev/invert/qpb_parameters_scan_files/scan.sh" \
+            "/nvme/h/cy22sg1/qpb_branches/Chebyshev_modified_eigenvalues/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh"
         )
     expected_output_values_list=(
             "Chebyshev" \
@@ -47,11 +51,15 @@ test_extract_overlap_operator_method()
             "Chebyshev" \
             "KL" \
             "KL" \
+            "Bare" \
+            "Bare" \
+            "KL" \
+            "Chebyshev" \
             "Bare"
         )
 
-    multiple_assert extract_overlap_operator_method test_input_values_list \
-                                                    expected_output_values_list
+    assert_multiple_function_outputs extract_overlap_operator_method \
+                            test_input_values_list expected_output_values_list
 }
 
 # test_general_range_of_values_generator() {
