@@ -32,8 +32,7 @@ unset LIBRARY_SCRIPTS_DIRECTORY_PATH
 
 # FUNCTIONS DEFINITIONS
 
-extract_overlap_operator_method()
-{
+extract_overlap_operator_method() {
 :   '
     Description: This function extracts the overlap operator method from a 
     given file or directory path. It checks for specific substrings related to 
@@ -66,7 +65,9 @@ extract_overlap_operator_method()
     relative_path="${path#*mainprogs/}"
     # Check if "mainprogs" was actually in the path
     if [[ "$relative_path" == "$path" ]]; then
-        # TODO: Log a WARNING that "mainprogs" directory was not found in path
+        warning_message="'mainprogs' directory was not found in gauge links "
+        warning_message+="configurations directory path."
+        log "WARNING" "$warning_message"
         # If not, then extract the last 4 levels of the directory path
         relative_path=$(echo "$path" | rev | cut -d'/' -f1-4 | rev)
     fi
@@ -86,8 +87,7 @@ extract_overlap_operator_method()
 }
 
 
-extract_kernel_operator_type()
-{
+extract_kernel_operator_type() {
 :   '
     Function: extract_kernel_operator_type
     Description: Maps the values of the KERNEL_OPERATOR_TYPE_FLAG variable to 
@@ -135,14 +135,19 @@ extract_kernel_operator_type()
             return 0
             ;;
         *)
+            local error_message="Invalid kernel operator type flag value: "
+            error_message+="'$KERNEL_OPERATOR_TYPE_FLAG'.\n"
+            error_message+="Valid values are:\n"
+            error_message+="- 'Standard', 'Stan', '0', or\n"
+            error_message+="- 'Brillouin', 'Bri', '1'."
+            termination_output "${error_message}"
             return 1
             ;;
     esac
 }
 
 
-extract_QCD_beta_value()
-{
+extract_QCD_beta_value() {
 :   '
     Function: extract_QCD_beta_value
     Description: Extracts the QCD beta value from a given gauge links
@@ -175,17 +180,18 @@ extract_QCD_beta_value()
     if [[ "$gauge_links_configurations_directory_path" =~ _b([^_]+)_L ]]; then
         local beta_value="${BASH_REMATCH[1]}"
         beta_value="${beta_value//p/.}"
+
         echo "$beta_value"
         return 0
     else
-        echo "Error: QCD beta value not found in the given path."
+        local error_message="QCD beta value not found in the given path."
+        termination_output "${error_message}"
         return 1
     fi
 }
 
 
-extract_lattice_dimensions()
-{
+extract_lattice_dimensions() {
 :   '
     Function: extract_lattice_dimensions
     Description: Extracts lattice dimensions from a given directory path. The 
@@ -194,7 +200,7 @@ extract_lattice_dimensions()
      dimensions in a specified format.
 
     Parameters:
-    - dir_path (string): The full directory path from which to extract the
+    - directory_path (string): The full directory path from which to extract the
       lattice dimensions. Example path: "/path/to/directory/_L24T48".
 
     Returns:
@@ -218,28 +224,75 @@ extract_lattice_dimensions()
       and returns 1, indicating failure.
     '
 
-    local dir_path="$1"
+    local directory_path="$1"
     
     # Use a regex to extract the substring of the form
     # "_L{spatial_side}T{temporal_side}"
-    if [[ "$dir_path" =~ _L([0-9]+)T([0-9]+) ]]; then
-        spatial_side="${BASH_REMATCH[1]}"   # Extract the spatial side (L)
-        temporal_side="${BASH_REMATCH[2]}"  # Extract the temporal side (T)
+    if [[ "$directory_path" =~ _L([0-9]+)T([0-9]+) ]]; then
+        local spatial_side="${BASH_REMATCH[1]}"  # Extract the spatial side (L)
+        local temporal_side="${BASH_REMATCH[2]}" # Extract the temporal side (T)
 
         # Print the desired output: "$temporal_side $spatial_side $spatial_side
         # $spatial_side"
         echo "$temporal_side $spatial_side $spatial_side $spatial_side"
     else
-        echo "Error: Lattice dimensions not found in the directory path"
+        local error_message="Lattice dimensions not found in the directory path"
+        termination_output "${error_message}"
         return 1
     fi
 }
 
 
+calculate_kappa_value() {
+:   '
+    Function: calculate_kappa_value
+    Description: Calculates the kappa_value parameter based on the given bare_mass.
+    Parameters:
+    1. bare_mass: The bare mass value used in the calculation.
+    Returns: None (prints the kappa_value value to the console).
+
+    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
+    with a precision of at least 16 decimal places.
+    '
+
+    local bare_mass="$1"
+    local kappa_value
+
+    # Use bc to perform the calculation with high precision
+    kappa_value=$(echo "scale=20; 0.5 / (4 + $bare_mass)" | bc)
+
+    # Print the kappa_value value to the console, trimming trailing zeros in the
+    # decimal part
+    printf "%.16f\n" "$kappa_value" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+}
+
+
+calculate_bare_mass_from_kappa_value() {
+:   '
+    Function: calculate_kappa_value
+    Description: Calculates the kappa_value parameter based on the given bare_mass.
+    Parameters:
+    1. bare_mass: The bare mass value used in the calculation.
+    Returns: None (prints the kappa_value value to the console).
+
+    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
+    with a precision of at least 16 decimal places.
+    '
+
+    local kappa_value="$1"
+    local bare_mass
+
+    # Use bc to perform the calculation with high precision
+    bare_mass=$(echo "scale=20; 0.5/$kappa_value - 4.0" | bc)
+
+    # Print the bare_mass value to the console, trimming trailing zeros in the decimal part
+    printf "%.16f\n" "$bare_mass" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+}
+
+
 # TODO: Potential improvement: identify the common part among the configuration
 # files and define the label as the different part
-extract_configuration_label_from_file()
-{
+extract_configuration_label_from_file() {
 :   '
     Function: extract_configuration_label_from_file
 
@@ -268,7 +321,8 @@ extract_configuration_label_from_file()
 
     # Check if the path contains a dot
     if [[ "$file_full_path" != *.* ]]; then
-        echo "Error: No dot found in the file path '$file_full_path'."
+        local error_message="No dot found in the file path '$file_full_path'."
+        termination_output "${error_message}"
         return 1
     fi
 
@@ -281,8 +335,7 @@ extract_configuration_label_from_file()
 
 # TODO: Accept "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" as input for unit-testing
 # purposes
-match_configuration_label_to_file()
-{
+match_configuration_label_to_file() {
 :   '
     Function to find a file in a specified directory that ends with a given 
     suffix.
@@ -319,11 +372,11 @@ match_configuration_label_to_file()
 
     # Check the number of files found
     if [ ${#files[@]} -eq 0 ]; then
-        echo "Error: No configuration file ending with '$configuration_label'"\
+        echo "No configuration file ending with '$configuration_label'"\
         "found."
         return 1
     elif [ ${#files[@]} -gt 1 ]; then
-        echo "Error: More than one configuration file ending with"\
+        echo "More than one configuration file ending with"\
         "'$configuration_label' found:"
         for file in "${files[@]}"; do
             echo "$file"
@@ -337,171 +390,34 @@ match_configuration_label_to_file()
 }
 
 
-check_lattice_dimensions()
-{
-:   '
-    Function: check_lattice_dimensions
-    This function checks if the given lattice dimensions match any value 
-    in the predefined list of lattice dimensions.
+convert_mpi_geometry_to_number_of_tasks() {
+: '
+  Takes an arr
+  '
 
-    Parameters:
-    - lattice_dimensions (string): The lattice dimensions to be checked, 
-    passed as a single string.
+  local mpi_geometry_string=$1
 
-    Global Variables:
-    - LATTICE_DIMENSIONS_LIST: An array containing predefined lattice dimensions
-       as strings.
+  # Extract the numbers from the string
+  IFS=',' read -r num1 num2 num3 <<< "$mpi_geometry_string"
 
-    Usage:
-    - Call this function with the lattice dimensions to check. Example:
-      check_lattice_dimensions "24 12 12 12"
+  product=$((num1 * num2 * num3))
 
-    Returns:
-    - 0 if the lattice dimensions match any value in LATTICE_DIMENSIONS_LIST.
-    - 1 if the lattice dimensions do not match any value in 
-      LATTICE_DIMENSIONS_LIST.
-
-    Output:
-    - Echoes 0 if the lattice dimensions are found in the list.
-    - Echoes 1 if the lattice dimensions are not found in the list.
-
-    Example:
-    LATTICE_DIMENSIONS_LIST=("24 12 12 12" "32 16 16 16" "40 20 20 20" 
-    "48 24 24 24")
-    check_lattice_dimensions "24 12 12 12"
-    # Output: 0
-    check_lattice_dimensions "30 15 15 15"
-    # Output: 1
-
-    Notes:
-    - The function uses a for loop to iterate through the 
-      LATTICE_DIMENSIONS_LIST and compares each element with the input 
-      lattice dimensions.
-    - If a match is found, it echoes 0 and returns 0.
-    - If no match is found, it echoes 1 and returns 1.
-    '
-    local lattice_dimensions="$@"
-
-    for listed_lattice_dimensions in "${LATTICE_DIMENSIONS_LIST[@]}"; do
-        if [[ "$listed_lattice_dimensions" == "$lattice_dimensions" ]]; then
-            echo 0
-            return 0
-        fi
-    done
-
-    echo 1
-    return 1
+  echo $product
 }
 
 
-calculate_kappa_value() {
-    : '
-    Function: calculate_kappa_value
-    Description: Calculates the kappa_value parameter based on the given bare_mass.
-    Parameters:
-    1. bare_mass: The bare mass value used in the calculation.
-    Returns: None (prints the kappa_value value to the console).
+print_lattice_dimensions() {
+    local temporal_dimension="$1"
+    local spatial_dimension="$2"
 
-    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
-    with a precision of at least 16 decimal places.
-    '
-
-    local bare_mass="$1"
-    local kappa_value
-
-    # Use bc to perform the calculation with high precision
-    kappa_value=$(echo "scale=20; 0.5 / (4 + $bare_mass)" | bc)
-
-    # Print the kappa_value value to the console, trimming trailing zeros in the
-    # decimal part
-    printf "%.16f\n" "$kappa_value" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+    # Output the string in the form "T${temporal_dimension}L${spatial_dimension}"
+    echo "T${temporal_dimension}L${spatial_dimension}"
 }
 
+# Not unit-tested
+################################################################################
 
-calculate_bare_mass_from_kappa_value() {
-    : '
-    Function: calculate_kappa_value
-    Description: Calculates the kappa_value parameter based on the given bare_mass.
-    Parameters:
-    1. bare_mass: The bare mass value used in the calculation.
-    Returns: None (prints the kappa_value value to the console).
-
-    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
-    with a precision of at least 16 decimal places.
-    '
-
-    local kappa_value="$1"
-    local bare_mass
-
-    # Use bc to perform the calculation with high precision
-    bare_mass=$(echo "scale=20; 0.5/$kappa_value - 4.0" | bc)
-
-    # Print the bare_mass value to the console, trimming trailing zeros in the decimal part
-    printf "%.16f\n" "$bare_mass" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
-}
-
-
-
-# TODO: The output of this function is not that useful
-lattice_dimensions_range_of_strings_generator()
-{
-:   '
-    Function: lattice_dimensions_range_of_strings_generator
-
-    Description:
-    This function generates a range of lattice dimension strings from the 
-    LATTICE_DIMENSIONS_LIST array based on the specified start, end, and step 
-    indices.
-
-    Parameters:
-    1. start: The starting index (0-based) of the range.
-    2. end: The ending index (0-based) of the range.
-    3. step: The step (increment) between consecutive indices.
-
-    Output:
-    An array of lattice dimension strings corresponding to the specified range 
-    of indices, echoed as a space-separated string.
-
-    Example Usage:
-    range=$(lattice_dimensions_range_of_strings_generator 1 5 2)
-    This sets range to "32 16 16 16 24 16 16 16 30 24 24 24".
-
-    Notes:
-    - The function checks if the step is zero and prints an error message if so.
-    - The function ensures that the indices are within the valid range of 
-      LATTICE_DIMENSIONS_LIST array.
-    '
-
-    local start="$1"
-    local end="$2"
-    local step="$3"
-    local range=()
-
-    # Check if step is zero
-    if [ "$step" -eq 0 ]; then
-        echo "Step cannot be zero."
-        return 1
-    fi
-
-    # Validate indices
-    local list_length="${#LATTICE_DIMENSIONS_LIST[@]}"
-    if [ "$start" -lt 0 ] || [ "$end" -lt 0 ] || [ "$start" -ge "$list_length" ] || [ "$end" -ge "$list_length" ]; then
-        echo "Indices are out of range."
-        return 1
-    fi
-
-    # Generate the range of lattice dimension strings
-    for ((i = start; (step > 0 ? i <= end : i >= end); i += step)); do
-        range+=("${LATTICE_DIMENSIONS_LIST[$i]}")
-    done
-
-    # Echo the range as a space-separated string
-    echo "${range[@]}"
-}
-
-
-range_of_gauge_configurations_file_paths_generator()
-{
+range_of_gauge_configurations_file_paths_generator() {
 :   '
     Function: range_of_gauge_configurations_file_paths_generator
 
@@ -573,50 +489,7 @@ range_of_gauge_configurations_file_paths_generator()
 }
 
 
-check_rho_value()
-{
-:   '
-    Function to check if the 'rho' parameter is a valid numerical value greater
-     than 0 and smaller than 2
-    Usage:    check_rho_value <rho>
-    Arguments:    rho: The value of the rho parameter to check.
-    Output:
-        - Echoes 0 if the value is a valid numerical value greater than 0 and
-         smaller than 2.
-        - Echoes 1 if the value is not valid.
-    Example:
-        check_rho_value 1.5
-    Output:
-        - If the value is valid, it will echo 0.
-        - If the value is not valid, it will echo 1.
-    Notes:
-        - The function uses regex to check if the value is a number.
-        - The function checks if the value is within the valid range (0, 2).
-    '
-
-    local rho="$1"
-
-    # Check if the value is a number
-    if ! [[ "$rho" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-        echo 1
-        return 1
-    fi
-
-    # Check if the value is greater than 0 and smaller than 2
-    if (( $(echo "$rho <= 0" | bc -l) )) || (( $(echo "$rho >= 2" | bc -l) ));
-    then
-        echo 1
-        return 1
-    fi
-
-    # If all checks pass, return success
-    echo 0
-    return 0
-}
-
-
-constant_parameters_update()
-{
+constant_parameters_update() {
 :   '
     Function: constant_parameters_update
     Description: Updates constants with new values based on input data. The 
@@ -719,79 +592,7 @@ constant_parameters_update()
 }
 
 
-extract_configuration_label_from_file()
-{
-:   '
-    Function: extract_configuration_label_from_file
-
-    Description:
-    This function extracts the configuration label from a given gauge links 
-    configuration file full path. The configuration label is defined as the 
-    substring after the last dot in the file path.
-
-    Parameters:
-    1. file_full_path: The full path to the gauge links configuration file.
-
-    Returns:
-    The configuration label extracted from the file full path.
-
-    Example Usage:
-    file_full_path="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE/conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200"
-    configuration_label=$(extract_configuration_label_from_file "$file_full_path")
-    echo "$configuration_label"  # Outputs: 0024200
-    '
-
-    local file_full_path="$1"
-    local configuration_label="${file_full_path##*.}"
-    echo "$configuration_label"
-}
-
-
-# TODO: Remove
-extract_operator_method()
-{
-:   '
-    Function to extract the operator method from a given script path
-    Usage: extract_operator_method $multiple_runs_script_full_path
-    Arguments:
-        *multiple_runs_script_full_path: The full path of the script to extract 
-        the operator method from.
-    Output:
-        Prints the extracted operator method based on the presence of predefined
-         operator types in the script path. If no matching operator method is 
-         found, it returns the default operator method.
-    Example:
-        operator_method=$(extract_operator_method \
-                                        "/path/to/script/Brillouin_analysis.sh")
-        This sets operator_method to "Brillouin" since the script path contains 
-        the "Brillouin" operator type.
-    Notes:
-        - This function iterates over a predefined array of operator types and 
-        checks if any of them are present in the script path.
-        - If a match is found, it returns the matched operator method.
-        - If no match is found, it returns the default operator method, which is
-         the first element of the OPERATOR_METHODS_ARRAY.
-        - The function assumes that the OPERATOR_METHODS_ARRAY is defined 
-        globally or accessible within the scope of the script.
-        - The function uses pattern matching to check if the operator method is 
-        present in the script path.
-    '
-
-    local multiple_runs_script_full_path="$1"
-    
-    for operator_method in "${OPERATOR_METHODS_ARRAY[@]}"; do
-        if [[ "$multiple_runs_script_full_path" == *"$operator_method"* ]]; then
-            echo "$operator_method"
-            return 0
-        fi
-    done
-
-    echo ${OPERATOR_METHODS_ARRAY[0]}
-}
-
-
-parameter_range_of_values_generator()
-{
+parameter_range_of_values_generator() {
     :   '
     Description:
     Generates a range of parameter values using the specified helper function.
@@ -830,123 +631,7 @@ parameter_range_of_values_generator()
 }
 
 
-parameter_range_of_values_generator_old()
-{
-:   '
-    Description:
-    Generates a range of parameter values using the specified helper function.
-    Assumes the validity of the range string format "[start end step]".
-
-    Parameters:
-    1. helper_function: The name of the function that generates the parameter 
-    range.
-    2. range_string: String specifying the range in the format 
-    "[start end step]".
-
-    Output:
-    Prints the generated range of values as output from the helper function.
-
-    Example:
-    parameter_range_of_values_generator parameter_range_generator "[1 10 2]"
-    '
-
-    local helper_function="$1"
-    local range_string="$2"
-
-    # Remove square brackets from range_string and extract start, end, and step
-    range_string="${range_string//[\[\]]/}"
-    # Extract start, end, and step from the range_string
-    IFS=' ' read -r start end step <<< "${range_string}"
-
-    # Call the helper function with start, end, and step arguments
-    output_array=($("$helper_function" "$start" "$end" "$step"))
-
-    # Print each value in the output_array
-    # printf '%s\n' "${output_array[@]}"
-    echo "${output_array[@]}"
-}
-
-
-# TODO: What about a general integer numbers range function?
-construct_number_of_Chebyshev_terms_range()
-{
-:   '
-    Function to construct a range of integer values given a start, end, and step
-    Usage: construct_range $start $end $step
-    Arguments:
-        * start: The starting integer of the range.
-        * end: The ending integer of the range.
-        * step: The increment (positive or negative) between consecutive 
-        integers in the range.
-    Output:
-        A space-separated string of integers representing the range from start 
-        to end, inclusive, incremented by step. If step is zero, the function 
-        prints an error message and returns 1.
-    Example:
-        range=$(construct_range 1 10 2)
-        This sets range to "1 3 5 7 9".
-    Notes:
-        - The function handles both positive and negative steps.
-        - If start is less than or equal to end, the function generates an 
-        increasing sequence.
-        - If start is greater than or equal to end, the function generates a 
-        decreasing sequence.
-    '
- 
-    local start="$1"
-    local end="$2"
-    local step="$3"
-    local range=()
-
-    if [ "$step" -eq 0 ]; then
-        echo "Step cannot be zero."
-        return 1
-    fi
-
-    if [ "$step" -gt 0 ]; then
-        for ((i = start; i <= end; i += step)); do
-            range+=("$i")
-        done
-    else
-        for ((i = start; i >= end; i += step)); do
-            range+=("$i")
-        done
-    fi
-
-    echo "${range[@]}"
-}
-
-
-convert_mpi_geometry_to_number_of_tasks()
-{
-: '
-  Takes an arr
-  '
-
-  local mpi_geometry_string=$1
-
-  # Extract the numbers from the string
-  IFS=',' read -r num1 num2 num3 <<< "$mpi_geometry_string"
-
-  product=$((num1 * num2 * num3))
-
-  echo $product
-}
-
-
-print_lattice_dimensions() {
-    local temporal_dimension="$1"
-    local spatial_dimension="$2"
-
-    # Output the string in the form "T${temporal_dimension}L${spatial_dimension}"
-    echo "T${temporal_dimension}L${spatial_dimension}"
-}
-
-
-############################ UNIT-TESTED FUNCTIONS #############################
-
-general_range_of_values_generator()
-{
+general_range_of_values_generator() {
 :   '
     Function to construct a range of values (integer or float) given a start, 
     end, and step.
@@ -1086,8 +771,7 @@ general_range_of_values_generator()
 }
 
 
-parameter_range_of_values_generator()
-{
+parameter_range_of_values_generator() {
     :   '
     Description:
     Generates a range of parameter values using the specified helper function.
@@ -1183,4 +867,205 @@ exponential_range_of_values_generator() {
     # Output the range as a space-separated string
     echo "${range[@]}"
     return 0
+}
+
+
+# TO BE RETIRED
+################################################################################
+
+# TODO: What about a general integer numbers range function?
+construct_number_of_Chebyshev_terms_range() {
+:   '
+    Function to construct a range of integer values given a start, end, and step
+    Usage: construct_range $start $end $step
+    Arguments:
+        * start: The starting integer of the range.
+        * end: The ending integer of the range.
+        * step: The increment (positive or negative) between consecutive 
+        integers in the range.
+    Output:
+        A space-separated string of integers representing the range from start 
+        to end, inclusive, incremented by step. If step is zero, the function 
+        prints an error message and returns 1.
+    Example:
+        range=$(construct_range 1 10 2)
+        This sets range to "1 3 5 7 9".
+    Notes:
+        - The function handles both positive and negative steps.
+        - If start is less than or equal to end, the function generates an 
+        increasing sequence.
+        - If start is greater than or equal to end, the function generates a 
+        decreasing sequence.
+    '
+ 
+    local start="$1"
+    local end="$2"
+    local step="$3"
+    local range=()
+
+    if [ "$step" -eq 0 ]; then
+        echo "Step cannot be zero."
+        return 1
+    fi
+
+    if [ "$step" -gt 0 ]; then
+        for ((i = start; i <= end; i += step)); do
+            range+=("$i")
+        done
+    else
+        for ((i = start; i >= end; i += step)); do
+            range+=("$i")
+        done
+    fi
+
+    echo "${range[@]}"
+}
+
+
+check_lattice_dimensions() {
+:   '
+    Function: check_lattice_dimensions
+    This function checks if the given lattice dimensions match any value 
+    in the predefined list of lattice dimensions.
+
+    Parameters:
+    - lattice_dimensions (string): The lattice dimensions to be checked, 
+    passed as a single string.
+
+    Global Variables:
+    - LATTICE_DIMENSIONS_LIST: An array containing predefined lattice dimensions
+       as strings.
+
+    Usage:
+    - Call this function with the lattice dimensions to check. Example:
+      check_lattice_dimensions "24 12 12 12"
+
+    Returns:
+    - 0 if the lattice dimensions match any value in LATTICE_DIMENSIONS_LIST.
+    - 1 if the lattice dimensions do not match any value in 
+      LATTICE_DIMENSIONS_LIST.
+
+    Output:
+    - Echoes 0 if the lattice dimensions are found in the list.
+    - Echoes 1 if the lattice dimensions are not found in the list.
+
+    Example:
+    LATTICE_DIMENSIONS_LIST=("24 12 12 12" "32 16 16 16" "40 20 20 20" 
+    "48 24 24 24")
+    check_lattice_dimensions "24 12 12 12"
+    # Output: 0
+    check_lattice_dimensions "30 15 15 15"
+    # Output: 1
+
+    Notes:
+    - The function uses a for loop to iterate through the 
+      LATTICE_DIMENSIONS_LIST and compares each element with the input 
+      lattice dimensions.
+    - If a match is found, it echoes 0 and returns 0.
+    - If no match is found, it echoes 1 and returns 1.
+    '
+    local lattice_dimensions="$@"
+
+    for listed_lattice_dimensions in "${LATTICE_DIMENSIONS_LIST[@]}"; do
+        if [[ "$listed_lattice_dimensions" == "$lattice_dimensions" ]]; then
+            echo 0
+            return 0
+        fi
+    done
+
+    echo 1
+    return 1
+}
+
+
+# TODO: The output of this function is not that useful
+lattice_dimensions_range_of_strings_generator() {
+:   '
+    Function: lattice_dimensions_range_of_strings_generator
+
+    Description:
+    This function generates a range of lattice dimension strings from the 
+    LATTICE_DIMENSIONS_LIST array based on the specified start, end, and step 
+    indices.
+
+    Parameters:
+    1. start: The starting index (0-based) of the range.
+    2. end: The ending index (0-based) of the range.
+    3. step: The step (increment) between consecutive indices.
+
+    Output:
+    An array of lattice dimension strings corresponding to the specified range 
+    of indices, echoed as a space-separated string.
+
+    Example Usage:
+    range=$(lattice_dimensions_range_of_strings_generator 1 5 2)
+    This sets range to "32 16 16 16 24 16 16 16 30 24 24 24".
+
+    Notes:
+    - The function checks if the step is zero and prints an error message if so.
+    - The function ensures that the indices are within the valid range of 
+      LATTICE_DIMENSIONS_LIST array.
+    '
+
+    local start="$1"
+    local end="$2"
+    local step="$3"
+    local range=()
+
+    # Check if step is zero
+    if [ "$step" -eq 0 ]; then
+        echo "Step cannot be zero."
+        return 1
+    fi
+
+    # Validate indices
+    local list_length="${#LATTICE_DIMENSIONS_LIST[@]}"
+    if [ "$start" -lt 0 ] || [ "$end" -lt 0 ] || [ "$start" -ge "$list_length" ] || [ "$end" -ge "$list_length" ]; then
+        echo "Indices are out of range."
+        return 1
+    fi
+
+    # Generate the range of lattice dimension strings
+    for ((i = start; (step > 0 ? i <= end : i >= end); i += step)); do
+        range+=("${LATTICE_DIMENSIONS_LIST[$i]}")
+    done
+
+    # Echo the range as a space-separated string
+    echo "${range[@]}"
+}
+
+
+parameter_range_of_values_generator_old() {
+:   '
+    Description:
+    Generates a range of parameter values using the specified helper function.
+    Assumes the validity of the range string format "[start end step]".
+
+    Parameters:
+    1. helper_function: The name of the function that generates the parameter 
+    range.
+    2. range_string: String specifying the range in the format 
+    "[start end step]".
+
+    Output:
+    Prints the generated range of values as output from the helper function.
+
+    Example:
+    parameter_range_of_values_generator parameter_range_generator "[1 10 2]"
+    '
+
+    local helper_function="$1"
+    local range_string="$2"
+
+    # Remove square brackets from range_string and extract start, end, and step
+    range_string="${range_string//[\[\]]/}"
+    # Extract start, end, and step from the range_string
+    IFS=' ' read -r start end step <<< "${range_string}"
+
+    # Call the helper function with start, end, and step arguments
+    output_array=($("$helper_function" "$start" "$end" "$step"))
+
+    # Print each value in the output_array
+    # printf '%s\n' "${output_array[@]}"
+    echo "${output_array[@]}"
 }

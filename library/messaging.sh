@@ -32,6 +32,107 @@ unset LIBRARY_SCRIPTS_DIRECTORY_PATH
 
 # FUNCTIONS DEFINITIONS
 
+log()
+{
+:   '
+    Description: This function logs messages with a specified log level to a 
+    designated log file. It wraps long messages at 80 characters for improved 
+    readability and includes a timestamp in the log entry.
+
+    Parameters:
+    - log_level (string): The severity level of the log (e.g., INFO, ERROR).
+    - message (string): The message to be logged.
+
+    Returns:
+    - Logs the message to the specified log file if the log file path is set.
+    - If the log file path is not set, it prints an error message and exits 
+      the script with a status code of 1.
+
+    Example Usage:
+      log "INFO" "This is a log message that will be recorded in the log file."
+
+    Notes:
+    - The log file path should be defined globally as LOG_FILE_PATH before 
+      calling this function.
+    - If the log file path is not set, the function will terminate the script 
+      to prevent logging failures.
+    '
+    
+    local log_level="$1"
+    local message="$2"
+
+    # Log only if the global variable of the log file path has been set properly
+    if [ ! -z "$LOG_FILE_PATH" ]; then
+        # Use fold to wrap the message at 80 characters
+        wrapped_message=$(echo -e \
+           "$(date '+%Y-%m-%d %H:%M:%S') [$log_level] : $message" | fold -sw 80)
+        echo -e "$wrapped_message" >> "$LOG_FILE_PATH"
+    else
+        # Otherwise exit with error
+        echo "No current script's log file path has been provided."
+        echo "Exiting..."
+        exit 1
+    fi
+}
+
+
+set_script_termination_message() {
+    # Accepts a variable name as an argument
+    local -n termination_message_ref="$1"
+    
+    # Check if the argument variable is empty
+    if [ -z "$termination_message_ref" ]; then
+        # Use the global variable if set, or default message otherwise
+        if [ -n "$SCRIPT_TERMINATION_MESSAGE" ]; then
+            termination_message_ref="$SCRIPT_TERMINATION_MESSAGE"
+        else
+            termination_message_ref="\n\t\t SCRIPT EXECUTION TERMINATED"
+        fi
+    fi
+}
+
+
+termination_output()
+{
+:   '
+    Description: This function handles error reporting and script termination 
+    procedures. It prints an error message to the console, logs the error using 
+    the log function, and appends a termination message to the log file.
+
+    Parameters:
+    - error_message (string): The error message to be displayed and logged.
+    - script_termination_message (string): The message to be appended to the 
+      log file indicating the reason for script termination.
+
+    Returns:
+    - Prints the error message to standard output.
+    - Logs the error message using the log function.
+    - Appends the script termination message to the log file specified by 
+      LOG_FILE_PATH.
+
+    Example Usage:
+        termination_output "File not found" "\n\t\tSCRIPT EXECUTION TERMINATED"
+
+    Notes:
+    - The function expects that the log file path (LOG_FILE_PATH) has been 
+      set properly before it is called.
+    - This function is designed to be called when a critical error occurs that 
+      requires stopping the script execution.
+    '
+    
+    local error_message="$1"
+    local script_termination_message="$2"
+    set_script_termination_message script_termination_message
+
+    echo -e "ERROR: $error_message" >&2
+    echo "Exiting..."  >&2
+    if [ -n "$LOG_FILE_PATH" ]; then
+      log "ERROR" "$error_message"
+      echo -e "$script_termination_message" >> "$LOG_FILE_PATH"
+    fi
+}
+
+
 setup_script_usage()
 {
 :   '
@@ -118,7 +219,7 @@ print_list_of_parameters()
     
     local parameter_names_array_name=$1  # Store the first argument as a string
     if ! declare -p "$parameter_names_array_name" &>/dev/null; then
-        echo "Error: Invalid list of parameters array name "\
+        echo "ERROR: Invalid list of parameters array name "\
                                         "'$parameter_names_array_name'."
         echo "Exiting..."
         exit 1
@@ -198,7 +299,7 @@ write_list_of_parameters_to_file()
 
     # Step 0: Validate the array name before using it as a reference
     if ! declare -p "$parameter_names_array_name" &>/dev/null; then
-        echo "Error: Invalid list of parameters array name "\
+        echo "ERROR: Invalid list of parameters array name "\
                                         "'$parameter_names_array_name'."
         echo "Exiting..."
         return 1
@@ -237,7 +338,7 @@ insert_message() {
 
     # Check if the script file exists and is writable
     if [[ ! -f "$script_file" || ! -w "$script_file" ]]; then
-        echo "Error: Specified script file does not exist or is not writable."
+        echo "ERROR: Specified script file does not exist or is not writable."
         return 1
     fi
 
@@ -247,23 +348,23 @@ insert_message() {
 
     # Create a temporary file to store the modified content
     local temporary_file
-    temporary_file=$(mktemp) || { echo "Error: Could not create a temporary file."; return 1; }
+    temporary_file=$(mktemp) || { echo "ERROR: Could not create a temporary file."; return 1; }
     
     # Process the file, inserting the warning message after the target line
     while IFS= read -r line; do
-        echo "$line" >> "$temporary_file" || { echo "Error: Could not write to temporary file."; return 1; }
+        echo "$line" >> "$temporary_file" || { echo "ERROR: Could not write to temporary file."; return 1; }
         
         if [[ "$line" == *"$target_line"* ]]; then
-            echo -e "$warning_message" >> "$temporary_file" || { echo "Error: Could not write warning message."; return 1; }
+            echo -e "$warning_message" >> "$temporary_file" || { echo "ERROR: Could not write warning message."; return 1; }
         fi
     done < "$script_file"
     
     # Move the modified content back to the original script file and restore permissions
     if mv "$temporary_file" "$script_file"; then
-        chmod "$original_permissions" "$script_file" || { echo "Error: Could not restore original permissions."; return 1; }
+        chmod "$original_permissions" "$script_file" || { echo "ERROR: Could not restore original permissions."; return 1; }
         return 0
     else
-        echo "Error: Failed to move temporary file to original script location."
+        echo "ERROR: Failed to move temporary file to original script location."
         return 1
     fi
 }
@@ -418,15 +519,6 @@ print_list_of_modifiable_parameters()
 
     # Additional new line
     echo
-}
-
-
-print_lattice_dimensions() {
-    local temporal_dimension="$1"
-    local spatial_dimension="$2"
-
-    # Output the string in the form "T${temporal_dimension}L${spatial_dimension}"
-    echo "T${temporal_dimension}L${spatial_dimension}"
 }
 
 

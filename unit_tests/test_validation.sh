@@ -31,109 +31,109 @@ unittest_option=${1:-$unittest_option_default_value}
 
 # CUSTOM FUNCTIONS UNIT TESTS
 
-test_is_integer()
-{
+test_is_integer() {
+
     local test_input_list=(-2 0 6 "test" 1.0)
     local expected_output_list=("True" "True" "True" "False" "False")
 
     local test_function_name="is_integer"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_positive_integer()
-{
+test_is_positive_integer() {
+
     local test_input_list=(-2 0 0.0 6 "test" 1.0)
     local expected_output_list=("False" "False" "False" "True" "False" "False")
 
     local test_function_name="is_positive_integer"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_non_negative_integer()
-{
+test_is_non_negative_integer() {
+
     local test_input_list=(-2 0 6 "test" 1.0)
     local expected_output_list=("False" "True" "True" "False" "False")
 
     local test_function_name="is_non_negative_integer"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_float()
-{
+test_is_float() {
+
     local test_input_list=(-2.0 0 0.0 6 "test" 1e-6 -1e-6 -1e10 -1e-10)
     local expected_output_list=("True" "True" "True" "True" "False" "True" \
                                                         "True" "True" "True")
 
     local test_function_name="is_float"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_positive_float()
-{
+test_is_positive_float() {
+
     local test_input_list=(-2.0 0 0.0 6 5.5 "test" 1e-6 -1e-6 -1e10 -1e-10)
     local expected_output_list=("False" "False" "False" "True" "True" "False" \
                                                 "True" "False" "False" "False")
 
     local test_function_name="is_positive_float"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_non_negative_float()
-{
+test_is_non_negative_float() {
+
     local test_input_list=(-2.0 0 0.0 6 5.5 "test" 1e-6 -1e-6 -1e10 -1e-10)
     local expected_output_list=("False" "True" "True" "True" "True" "False" \
                                                 "True" "False" "False" "False")
 
     local test_function_name="is_non_negative_float"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_valid_rho_value()
-{
+test_is_valid_rho_value() {
+
     local test_input_list=(-2.0 0 0.0 2 2.0 6 6.0 0.5 1.5 "test" 1e-1 1e1 -1e-2)
     local expected_output_list=("False" "True" "True" "True" "True" "False" \
                         "False" "True" "True" "False" "True" "False" "False")
 
     local test_function_name="is_valid_rho_value"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_valid_clover_term_coefficient()
-{
+test_is_valid_clover_term_coefficient() {
+
     local test_input_list=(-1.0 0 0.0 1 1.0 6 6.0 0.5 "test" 1e-1 1e1 -1e-2)
     local expected_output_list=("False" "True" "True" "True" "True" "False" \
                                 "False" "True" "False" "True" "False" "False")
 
     local test_function_name="is_valid_clover_term_coefficient"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_valid_gauge_links_configuration_label()
-{
+test_is_valid_gauge_links_configuration_label() {
+
     # Export dependency
     # TODO: Remove this after the capability is added to be passed as input
     # argument
@@ -144,25 +144,25 @@ test_is_valid_gauge_links_configuration_label()
 
     local test_function_name="is_valid_gauge_links_configuration_label"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_is_range_string()
-{
+test_is_range_string() {
+
     local test_input_list=("[1 5 1]" "[1    5    1]" "[5 1 -1]" "[1e-2 1e-6 1e-2]")
     local expected_output_list=("True" "True" "True" "True")
 
     local test_function_name="is_range_string"
 
-    multiple_validation_assert $test_function_name test_input_list \
-                                                            expected_output_list
+    assert_multiple_validation_function_cases $test_function_name \
+                                            test_input_list expected_output_list
 }
 
 
-test_check_arrays_same_length()
-{
+test_check_arrays_same_length() {
+
     local test_array1 test_array2
     local test_passed="True"
     
@@ -185,103 +185,7 @@ test_check_arrays_same_length()
     fi
 }
 
-# test_extract_overlap_operator_method()
-# {
-#     test_input_values_list=(
-#             "/overlap-Chebyshev/multiple_runs.sh" \
-#             "/overlap-chebyshev/multiple_runs.sh" \
-#             "/overlap-CHEBYSHEV/multiple_runs.sh" \
-#             "/overlap-KL/multiple_runs.sh" \
-#             "/overlap-kl/multiple_runs.sh" \
-#             "/mainprogs/multiple_runs.sh"
-#         )
-#     expected_output_values_list=(
-#             "Chebyshev" \
-#             "Chebyshev" \
-#             "Chebyshev" \
-#             "KL" \
-#             "KL" \
-#             "Bare"
-#         )
 
-#     multiple_assert extract_overlap_operator_method test_input_values_list \
-#                                                     expected_output_values_list
-# }
-
-
-# test_extract_kernel_operator_type()
-# {
-#     # positive tests
-#     test_input_values_list=("Standard" "Stan" "0" "Brillouin" "Bri" "1")
-#     expected_output_values_list=("Standard" "Standard" "Standard" \
-#                                         "Brillouin" "Brillouin" "Brillouin")
-
-#     multiple_assert extract_kernel_operator_type test_input_values_list \
-#                                     expected_output_values_list || return 1;
-
-#     # negative test
-#     extract_kernel_operator_type "INCORRECT_INPUT" >/dev/null 2>&1 || return 0;
-# }
-
-
-# test_extract_QCD_beta_value()
-# {
-#     # positive tests
-#     test_input_values_list=(
-#         "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE" \
-#         "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b5p20_L16T32-APE" \
-#         )
-#     expected_output_values_list=("6.20" "5.20")
-
-#     multiple_assert extract_QCD_beta_value test_input_values_list \
-#                                 expected_output_values_list || return 1;
-
-#     # negative test
-#     extract_QCD_beta_value "INCORRECT_INPUT" >/dev/null 2>&1 || return 0;
-# }
-
-
-# test_extract_lattice_dimensions()
-# {
-#     # positive tests
-#     test_input_values_list=(
-#         "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE" \
-#         "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b5p20_L16T32-APE" \
-#         )
-#     expected_output_values_list=("48 24 24 24" "32 16 16 16")
-
-#     multiple_assert extract_lattice_dimensions test_input_values_list \
-#                                 expected_output_values_list || return 1;
-
-#     # negative test
-#     extract_lattice_dimensions "INCORRECT_INPUT" >/dev/null 2>&1 || return 0;
-# }
-
-
-# # TODO: Setup a test for the ""extract_operator_type" function
-# # test_extract_operator_type()
-# # {
-
-
-# #     # Set the OPERATOR_TYPE_FLAG variable
-# #     OPERATOR_TYPE_FLAG=Stan
-
-# #     # Source the function (if it is in another file, source that file)
-# #     # source /path/to/function_definition.sh
-
-# #     # Call the function to set OPERATOR_TYPE
-# #     extract_operator_type
-
-# #     # Print the resulting OPERATOR_TYPE
-# #     echo "OPERATOR_TYPE is set to: $OPERATOR_TYPE"
-# # }
-
-
-# test_extract_operator_method()
-# {
-#     output=($(extract_QCD_beta_value "/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE"))
-#     echo $output
-# }
 
 
 # test_validate_indices_array()
@@ -462,14 +366,6 @@ test_check_arrays_same_length()
 #     array_assert output_array expected_output_array
 # }
 
-
-# # test_match_configuration_label_to_file()
-# # {
-# #     output=$(match_configuration_label_to_file "0024200")
-# #     expected_output="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE/conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200"
-
-# #     assert "$output" "$expected_output"
-# # }
 
 # # test_parameter_range_of_values_generator()
 # # {
