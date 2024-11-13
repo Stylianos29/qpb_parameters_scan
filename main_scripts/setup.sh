@@ -53,13 +53,14 @@ fi
 CURRENT_SCRIPT_NAME="$(basename "$CURRENT_SCRIPT_FULL_PATH")"
 # Replace ".sh" with "_log.txt" to create the log file name
 LOG_FILE_NAME=$(echo "$CURRENT_SCRIPT_NAME" | sed 's/\.sh$/_log.txt/')
+# Export log file path as a global variable to be used by custom functions
 export LOG_FILE_PATH="$(dirname "$CURRENT_SCRIPT_FULL_PATH")/${LOG_FILE_NAME}"
 
 # Create or override a log file. Initiate logging
 echo -e "\t\t"$(echo "$CURRENT_SCRIPT_NAME" | tr '[:lower:]' '[:upper:]') \
                 "SCRIPT EXECUTION INITIATED\n" > "$LOG_FILE_PATH"
 
-# Script termination message to be used for finalizing logging
+# Export script termination message to be used for finalizing logging
 export SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
                     | tr '[:lower:]' '[:upper:]')" SCRIPT EXECUTION TERMINATED"
 
@@ -70,7 +71,7 @@ export SCRIPT_TERMINATION_MESSAGE="\n\t\t"$(echo "$CURRENT_SCRIPT_NAME" \
 # script is sourced.
 MAIN_SCRIPTS_DIRECTORY_FULL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source all custom functions scripts from "qpb_parameters_scan/library"
+# Source all library scripts from "qpb_parameters_scan/library"
 # using a loop avoiding this way name-specific sourcing and thus potential typos
 sourced_scripts_count=0 # Initialize a counter for sourced files
 for custom_functions_script in $(realpath \
@@ -84,10 +85,10 @@ do
 done
 # Check whether any files were sourced
 if [ $sourced_scripts_count -gt 0 ]; then
-    log "INFO" "A total of $sourced_scripts_count custom functions scripts "\
+    log "INFO" "A total of $sourced_scripts_count library scripts "\
 "from qpb_parameters_scan/library were successfully sourced."
 else
-    ERROR_MESSAGE="No custom functions scripts were sourced at all."
+    ERROR_MESSAGE="No library scripts were sourced at all."
     echo "ERROR: "$ERROR_MESSAGE
     echo "Exiting..."
     # Log error explicitly since "log()" function couldn't be sourced
@@ -116,8 +117,8 @@ while [[ "$#" -gt 0 ]]; do
                 DESTINATION_DIRECTORY_PATH=$2
                 shift  # Skip the next argument as it's the path
             else
-                ERROR_MESSAGE="Argument for $1 is missing."
-                termination_output "$ERROR_MESSAGE"
+                error_message="Argument for $1 is missing."
+                termination_output "$error_message"
                 setup_script_usage
                 exit 1
             fi
@@ -131,8 +132,8 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         # Handle unknown options
         -*)
-            ERROR_MESSAGE="Unknown option: $1."
-            termination_output "$ERROR_MESSAGE"
+            error_message="Unknown option: $1."
+            termination_output "$error_message"
             setup_script_usage
             exit 1
             ;;
@@ -148,7 +149,7 @@ done
 
 # Check if passed destination directory exists. If not, exit with error message
 ERROR_MESSAGE="Destination directory does not exist. Please check again."
-check_if_directory_exists "${DESTINATION_DIRECTORY_PATH}" "$ERROR_MESSAGE" \
+check_if_directory_exists "$DESTINATION_DIRECTORY_PATH" "$ERROR_MESSAGE" \
                                                                     || exit 1
 log "INFO" "Destination directory path is: '"$DESTINATION_DIRECTORY_PATH"'."
 
@@ -160,6 +161,7 @@ log "INFO" "Destination directory path is: '"$DESTINATION_DIRECTORY_PATH"'."
 if [[ "$CURRENT_SCRIPT_NAME" == "setup.sh" ]]; then
     DESTINATION_SETUP_DIRECTORY_PATH="${DESTINATION_DIRECTORY_PATH}"\
 "/qpb_parameters_scan_files" # Default setup directory
+    # Create "qpb_parameters_scan_files" directory if it doesn't exist
     if [ ! -d "$DESTINATION_SETUP_DIRECTORY_PATH" ]; then
         mkdir -p "$DESTINATION_SETUP_DIRECTORY_PATH"
         log "INFO" "'qpb_parameters_scan_files' directory created inside "\
@@ -174,6 +176,7 @@ log "INFO" "All files will be copied inside the "\
 
 # CONSTRUCT SETUP FILES LIST
 
+# Default list of setup files to be copied
 SETUP_FILES_LIST=("input.txt" "input_file_instructions.md" "scan.sh"\
                                                 "usage.sh" "update.sh" "run.sh")
 
