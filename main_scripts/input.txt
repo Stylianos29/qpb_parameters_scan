@@ -13,9 +13,9 @@ BINARY_INVERT_SOLUTION_FILES_DIRECTORY=
 
 ########################### PARAMETERS SPECIFICATION ###########################
 
-# List of non-iterable parameters:
+# List of non-iterable parameters with default values:
 
-# List of iterable parameters:
+# List of iterable parameters with default values:
 
 # Non-iterable parameters
 KERNEL_OPERATOR_TYPE_FLAG=0
