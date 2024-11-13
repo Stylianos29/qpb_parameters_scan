@@ -201,21 +201,15 @@ echo -e "\n\t\t** PARAMETERS SPECIFICATION **\n" >> "$LOG_FILE_PATH"
 
 # Extract non-iterable parameters values
 OVERLAP_OPERATOR_METHOD=$(\
-                extract_overlap_operator_method $CURRENT_SCRIPT_FULL_PATH)
-KERNEL_OPERATOR_TYPE=$(extract_kernel_operator_type $KERNEL_OPERATOR_TYPE_FLAG)
-if [ $? -ne 0 ]; then
-    error_message="Invalid KERNEL_OPERATOR_TYPE_FLAG value"
-    error_message+="'$KERNEL_OPERATOR_TYPE_FLAG'.\n"
-    error_message+="Valid values are:\n"
-    error_message+="- 'Standard', 'Stan', '0', or\n"
-    error_message+="- 'Brillouin', 'Bri', '1'."
-    termination_output "${error_message}"
-    exit 1
-fi
+                    extract_overlap_operator_method $CURRENT_SCRIPT_FULL_PATH)
+KERNEL_OPERATOR_TYPE=$(\
+            extract_kernel_operator_type $KERNEL_OPERATOR_TYPE_FLAG) || exit 1
 log "INFO" "Kernel operator type flag is valid."
-QCD_BETA_VALUE=$(extract_QCD_beta_value "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY")
+QCD_BETA_VALUE=$(\
+    extract_QCD_beta_value "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY") || exit 1
 LATTICE_DIMENSIONS=$(\
-            extract_lattice_dimensions "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY")
+    extract_lattice_dimensions "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY") \
+                                                                    || exit 1
 
 # Log non-iterable parameters values
 non_iterable_parameters_values=$(\
