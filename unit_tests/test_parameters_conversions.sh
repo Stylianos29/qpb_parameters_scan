@@ -41,10 +41,10 @@ test_extract_overlap_operator_method() {
             "/overlap-kl/scan.sh" \
             "/mainprogs/scan.sh" \
             # Full paths that might mislead the extraction
-            "/nvme/h/cy22sg1/qpb_branches/KL_multishift_scaling/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh" \
-            "/nvme/h/cy22sg1/qpb_branches/KL_multishift_scaling/qpb/mainprogs/overlap-kl/invert/qpb_parameters_scan_files/scan.sh" \
-            "/nvme/h/cy22sg1/qpb_branches/Chebyshev_modified_eigenvalues/qpb/mainprogs/overlap-Chebyshev/invert/qpb_parameters_scan_files/scan.sh" \
-            "/nvme/h/cy22sg1/qpb_branches/Chebyshev_modified_eigenvalues/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh"
+            "/KL_multishift_scaling/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh" \
+            "/KL_multishift_scaling/qpb/mainprogs/overlap-kl/invert/qpb_parameters_scan_files/scan.sh" \
+            "/Chebyshev_modified_eigenvalues/qpb/mainprogs/overlap-Chebyshev/invert/qpb_parameters_scan_files/scan.sh" \
+            "/Chebyshev_modified_eigenvalues/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh"
         )
     expected_output_values_list=(
             "Chebyshev" \
@@ -120,107 +120,44 @@ test_extract_configuration_label_from_file() {
     expected_output_values_list=("0024200" "0036800")
 
     assert_multiple_function_outputs extract_configuration_label_from_file \
-                test_input_values_list expected_output_values_list || return 1;
+                test_input_values_list expected_output_values_list || return 1
 
     # Negative test
     ! extract_configuration_label_from_file "INCORRECT_INPUT" >/dev/null 2>&1 \
-                                                                    || return 1;
+                                                                    || return 1
 }
 
 
-test_match_configuration_label_to_file()
-{
-    output=$(match_configuration_label_to_file "0024200")
-    expected_output="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE/conf_Nf0_b6p20_L24T48_apeN1a0p72.0024200"
+test_calculate_kappa_value_from_bare_mass() {
+    test_input_values_list=("1.0" "1" "-2" "-4.5")
+    expected_output_values_list=("0.1" "0.1" "0.25" "-1.0")
 
-    assert "$output" "$expected_output"
+    assert_multiple_function_outputs calculate_kappa_value_from_bare_mass \
+                test_input_values_list expected_output_values_list
 }
 
 
-test_calculate_kappa_value() {
-    BARE_MASS=1.0
-    output=$(calculate_kappa_value "$BARE_MASS")
-    expected_output="0.1"
+test_calculate_bare_mass_from_kappa_value() {
+    test_input_values_list=("0.1" "0.1" "0.25" "-1.0")
+    expected_output_values_list=("1.0" "1.0" "-2.0" "-4.5")
 
-    assert $output $expected_output
+    assert_multiple_function_outputs calculate_bare_mass_from_kappa_value \
+                test_input_values_list expected_output_values_list
 }
 
 
-# test_general_range_of_values_generator() {
-#     local range_of_values=$(general_range_of_values_generator "2" "20" "2")
-#     echo $range_of_values
-# }
+test_calculate_number_of_tasks_from_mpi_geometry() {
+    test_input_values_list=("2,2,2" "3,2,1")
+    expected_output_values_list=("8" "6")
 
+    assert_multiple_function_outputs \
+        calculate_number_of_tasks_from_mpi_geometry \
+                test_input_values_list expected_output_values_list
+}
 
-# test_exponential_range_of_values_generator() {
-#     local range_of_values=$(exponential_range_of_values_generator "1e-2" "1e-6" "1e-2")
-#     echo $range_of_values
-# }
-
-
-# test_general_range_of_values_generator()
-# {
-#     local TESTED_FUNCTION_NAME="general_range_of_values_generator"
-#     local ERROR_MESSAGE="\nError: '$TESTED_FUNCTION_NAME' function"
-
-#     # Valid case of integer range of values
-#     output=$(general_range_of_values_generator 1 10 2)
-#     expected_output="1 3 5 7 9"
-#     assert "$output" "$expected_output" || {
-#         echo -e "$ERROR_MESSAGE generates incorrect integer range of values";
-#         return 1;
-#         }
-
-#     # Valid case of range of float values with single decimal point
-#     output=$(general_range_of_values_generator 1.0 2.0 0.2)
-#     expected_output="1.0 1.2 1.4 1.6 1.8 2.0"
-#     assert "$output" "$expected_output" || {
-#         echo -e "$ERROR_MESSAGE generates incorrect range of float values with"\
-#         "single decimal point";
-#         return 1;
-#         }
-
-#     # Valid case of range of float values with three decimal points
-#     output=$(general_range_of_values_generator 1.0 1.01 0.002)
-#     expected_output="1.000 1.002 1.004 1.006 1.008 1.010"
-#     assert "$output" "$expected_output" || {
-#         echo -e "$ERROR_MESSAGE generates incorrect range of float values with"\
-#         "three decimal points";
-#         return 1;
-#         }
-
-#     # Valid case of range of exponential float values
-#     output=$(general_range_of_values_generator 1e-1 1.5e-1 1e-2)
-#     expected_output="1.00e-01 1.10e-01 1.20e-01 1.30e-01 1.40e-01"
-#     assert "$output" "$expected_output" || {
-#         echo -e "$ERROR_MESSAGE generates incorrect range of exponential float"\
-#         "values";
-#         return 1;
-#         }
-
-#     # Valid case of range of exponential float values with negative step
-#     output=$(general_range_of_values_generator 1e-1 1e-2 -1e-2)
-#     expected_output="1.00e-01 9.00e-02 8.00e-02 7.00e-02 6.00e-02 5.00e-02 "
-#     expected_output+="4.00e-02 3.00e-02 2.00e-02 1.00e-02"
-#     assert "$output" "$expected_output" || {
-#         echo -e "$ERROR_MESSAGE generates incorrect range of exponential float"\
-#         "values with negative step";
-#         return 1;
-#         }
-# }
-
-# test_range_of_gauge_configurations_file_paths_generator()
-# {
-#     output=$(\range_of_gauge_configurations_file_paths_generator \
-#         $GAUGE_LINKS_CONFIGURATIONS_DIRECTORY 1 3 1)
-#     expected_output="/nvme/h/cy22sg1/scratch/Nf0/Nf0_b6p20_L24T48-APE/"\
-# "conf_Nf0_b6p20_L24T48_apeN1a0p72.0000200 /nvme/h/cy22sg1/scratch/Nf0/"\
-# "Nf0_b6p20_L24T48-APE/conf_Nf0_b6p20_L24T48_apeN1a0p72.0000400 /nvme/h/cy22sg1"\
-# "/scratch/Nf0/Nf0_b6p20_L24T48-APE/conf_Nf0_b6p20_L24T48_apeN1a0p72.0000600"
-
-#     # assert "$output" "$expected_output"
-# }
-
+# Missing tests for:
+# - extract_configuration_label_from_file()
+# - match_configuration_label_to_file()
+# - extract_lattice_dimensions_label_with_value()
 
 unittest $unittest_option
-

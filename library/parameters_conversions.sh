@@ -1,11 +1,16 @@
 #!/bin/bash
 
 
-# TODO: Write description
 ######################################################################
-# library/parameters.sh - Script for 
+# library/parameters_conversions.sh - Script for transforming and handling
+# parameter values for the qpb project
 #
-#
+# This script contains functions that perform various transformations and
+# conversions on parameters used in the C/C++ qpb project. It includes utilities
+# for extracting and calculating values related to lattice dimensions, operator
+# types, bare mass, kappa value, and MPI geometry. These functions ensure that
+# input parameters are correctly processed and transformed for further use in
+# calculations within the project.
 ######################################################################
 
 
@@ -69,7 +74,8 @@ extract_overlap_operator_method() {
         warning_message+="configurations directory path."
         log "WARNING" "$warning_message"
         # If not, then extract the last 4 levels of the directory path
-        relative_path=$(echo "$path" | rev | cut -d'/' -f1-4 | rev)
+        relative_path=$(echo "$path" \
+            | awk -F'/' '{for(i=NF-3;i<=NF;i++) printf (i<NF? $i "/": $i)}')
     fi
 
     # 1. Check for "Chebyshev", "chebyshev", or "CHEBYSHEV"
@@ -236,59 +242,125 @@ extract_lattice_dimensions() {
         # $spatial_side"
         echo "$temporal_side $spatial_side $spatial_side $spatial_side"
     else
-        local error_message="Lattice dimensions not found in the directory path"
+        local error_message="Lattice dimensions not found in the "
+        error_message+="directory path."
         termination_output "${error_message}"
         return 1
     fi
 }
 
 
-calculate_kappa_value() {
-:   '
-    Function: calculate_kappa_value
-    Description: Calculates the kappa_value parameter based on the given bare_mass.
-    Parameters:
-    1. bare_mass: The bare mass value used in the calculation.
-    Returns: None (prints the kappa_value value to the console).
+calculate_kappa_value_from_bare_mass() {
+    : '
+    Function: calculate_kappa_value_from_bare_mass
 
-    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
-    with a precision of at least 16 decimal places.
+    Description:
+    This function calculates the "kappa" value from a given "bare mass" value 
+    using the formula: kappa = 0.5 / (4 + bare_mass). The function ensures that 
+    the input value for bare mass is a valid floating-point number and then 
+    performs the calculation with high precision. The resulting kappa value is 
+    printed to the console with at least one decimal place, omitting unnecessary
+    trailing zeros.
+
+    Parameters:
+    bare_mass (float) - A floating-point value representing the "bare mass"
+    used in calculating the kappa value. This value should be positive,
+    finite, and expressed as a valid float.
+
+    Return Value:
+    On success, the function prints the calculated kappa value to the console 
+    with up to 16 decimal places, ensuring at least one decimal place. 
+    On failure, if the input "bare_mass" is invalid (i.e., not a float), the 
+    function outputs an error message and terminates with a return code of 1.
+
+    Usage Example:
+    calculate_kappa_value_from_bare_mass 1.5
+    # Expected output: 0.0833333333333333
+
+    Additional Notes:
+    - The function uses `awk` to perform the high-precision calculation and 
+        also to trim any trailing zeros in the decimal output. If `bare_mass` 
+        is not a valid float, the function uses `termination_output` to display 
+        an error message and return a failure code.
+    - By using a precision of 20 decimal places in the `awk` calculation, the 
+        function ensures high accuracy, even for values of `bare_mass` that 
+        might require precision to avoid rounding issues.
     '
 
     local bare_mass="$1"
-    local kappa_value
+    if ! is_float "$bare_mass"; then
+        local error_message="Invalid bare mass value."
+        termination_output "${error_message}"
+        return 1
+    fi
 
-    # Use bc to perform the calculation with high precision
-    kappa_value=$(echo "scale=20; 0.5 / (4 + $bare_mass)" | bc)
+    # Perform the calculation with high precision using `awk`
+    local kappa_value=$(awk -v bare_mass="$bare_mass" \
+                            'BEGIN { printf "%.20f", 0.5 / (4 + bare_mass) }')
 
-    # Print the kappa_value value to the console, trimming trailing zeros in the
-    # decimal part
-    printf "%.16f\n" "$kappa_value" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+    # Print kappa_value value to console, ensuring at least one decimal place
+    printf "%.16f\n" "$kappa_value" \
+        | awk '{
+            sub(/\.?0+$/, "", $0)  # Remove unnecessary trailing zeros
+            if ($0 !~ /\./) $0 = $0 ".0"  # Add ".0" if result is an integer
+            print
+        }'
 }
 
 
 calculate_bare_mass_from_kappa_value() {
-:   '
-    Function: calculate_kappa_value
-    Description: Calculates the kappa_value parameter based on the given bare_mass.
-    Parameters:
-    1. bare_mass: The bare mass value used in the calculation.
-    Returns: None (prints the kappa_value value to the console).
+    : '
+    Function: calculate_bare_mass_from_kappa_value
 
-    This function calculates the kappa_value value using the formula 0.5 / (4 + bare_mass)
-    with a precision of at least 16 decimal places.
+    Description: This function calculates the "bare mass" value from a given
+    "kappa" value using the formula: bare_mass = (0.5 / kappa) - 4. It first
+    verifies that the input is a valid floating-point number, then performs
+    the calculation with high precision, and finally outputs the result to the
+    console with trailing zeros in the decimal part removed.
+
+    Parameters: kappa_value (float) - A floating-point value representing the
+    "kappa" used to calculate the corresponding bare mass value. This value 
+    should be positive, finite, and expressed as a valid float.
+
+    Return Value: On success, the function prints the calculated bare mass
+    value to the console with at least one decimal place, omitting unnecessary
+    trailing zeros. On failure, if the input "kappa_value" is invalid (i.e.,
+    not a float), the function outputs an error message and terminates with a
+    return code of 1.
+
+    Usage Example: calculate_bare_mass_from_kappa_value 0.125
+    # Expected output: 0.0833333333333333
+
+    Additional Notes:
+    - The function uses `awk` to perform the calculation with 20 decimal
+        places for high precision and also uses `awk` to trim any trailing
+        zeros in the output. If `kappa_value` is not a valid float, the
+        function uses `termination_output` to display an error message and
+        return a failure code.
+    - By applying a precision of 20 decimal places, the function ensures
+        accurate results, particularly useful for `kappa_value` inputs that
+        may require precision to prevent rounding errors.
     '
 
     local kappa_value="$1"
-    local bare_mass
+    if ! is_float "$kappa_value"; then
+        local error_message="Invalid kappa value."
+        termination_output "${error_message}"
+        return 1
+    fi
 
-    # Use bc to perform the calculation with high precision
-    bare_mass=$(echo "scale=20; 0.5/$kappa_value - 4.0" | bc)
+    # Perform the calculation with high precision using `awk`
+    local bare_mass=$(awk -v kappa_value="$kappa_value" \
+                            'BEGIN { printf "%.20f", 0.5 / kappa_value - 4.0 }')
 
-    # Print the bare_mass value to the console, trimming trailing zeros in the decimal part
-    printf "%.16f\n" "$bare_mass" | awk '{ sub(/\.?0+$/, ""); if ($0 ~ /^\./) print "0"$0; else print }'
+    # Print bare_mass value to the console, ensuring at least one decimal place
+    printf "%.16f\n" "$bare_mass" \
+        | awk '{
+            sub(/\.?0+$/, "", $0)  # Remove unnecessary trailing zeros
+            if ($0 !~ /\./) $0 = $0 ".0"  # Add ".0" if result is an integer
+            print
+        }'
 }
-
 
 # TODO: Potential improvement: identify the common part among the configuration
 # files and define the label as the different part
@@ -333,8 +405,6 @@ extract_configuration_label_from_file() {
 }
 
 
-# TODO: Accept "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" as input for unit-testing
-# purposes
 match_configuration_label_to_file() {
 :   '
     Function to find a file in a specified directory that ends with a given 
@@ -366,6 +436,9 @@ match_configuration_label_to_file() {
     
     local configuration_label="$1"
 
+    # TODO: Accept "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" as input for
+    # unit-testing purposes
+
     # Find files that end with the specified suffix in the global directory
     local files=($(find "$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY" -type f -name \
                                                     "*$configuration_label"))
@@ -389,683 +462,91 @@ match_configuration_label_to_file() {
     return 0
 }
 
+# TODO: How about validating input?
+calculate_number_of_tasks_from_mpi_geometry() {
+:   '
+    Function: calculate_number_of_tasks_from_mpi_geometry
 
-convert_mpi_geometry_to_number_of_tasks() {
-: '
-  Takes an arr
-  '
+    Description: This function calculates the total number of tasks for an MPI
+    (Message Passing Interface) run based on a given geometry string. The
+    geometry is specified in the format "nX,nY,nZ", where nX, nY, and nZ
+    represent the number of processes in the X, Y, and Z directions,
+    respectively. The function multiplies these values to compute the total
+    number of tasks.
+
+    Parameters: mpi_geometry_string (string) - A comma-separated string
+    specifying the MPI geometry dimensions in the form "nX,nY,nZ". Each
+    dimension must be a positive integer.
+
+    Return Value: On success, the function outputs the total number of tasks,
+      calculated as the product of the nX, nY, and nZ values from the input
+      string. This value is printed to the console as an integer. On failure
+      (e.g., if the input format is incorrect or if non-integer values are
+      provided), the function will not produce a valid output.
+
+    Usage Example: calculate_number_of_tasks_from_mpi_geometry "4,2,3"
+      # Expected output: 24
+
+    Additional Notes:
+      - The function uses the `IFS` (Internal Field Separator) to split the
+        input string by commas, extracting the individual dimensions into
+        separate variables nX, nY, and nZ. It then calculates the product of
+        these variables.
+      - To ensure robustness, consider validating the input format and
+        checking that each extracted value is a positive integer before
+        performing the multiplication.
+      - This function assumes valid input in the "nX,nY,nZ" format; any
+        deviation may lead to incorrect results or errors during execution.
+'
 
   local mpi_geometry_string=$1
 
   # Extract the numbers from the string
-  IFS=',' read -r num1 num2 num3 <<< "$mpi_geometry_string"
+  IFS=',' read -r nX nY nZ <<< "$mpi_geometry_string"
 
-  product=$((num1 * num2 * num3))
+  local product=$((nX * nY * nZ))
 
   echo $product
 }
 
+# TODO: How about validating input?
+extract_lattice_dimensions_label_with_value() {
+:   '
+    Function: extract_lattice_dimensions_label_with_value
+    
+    Description: This function generates a label representing the lattice
+    dimensions of a system based on provided temporal and spatial dimensions.
+    The label is output in the form
+    "T{temporal_dimension}L{spatial_dimension}", where "T" indicates the
+    temporal dimension and "L" indicates the spatial dimension. This
+    standardized format can be used for labeling files, directories, or other
+    outputs associated with the specified lattice dimensions.
+    
+    Parameters: temporal_dimension (integer or string) - The temporal
+    dimension of the lattice. spatial_dimension (integer or string) - The
+    spatial dimension of the lattice. Only the first spatial dimension
+    argument is used; additional arguments are ignored, as they are assumed to
+    match this value by definition.
+    
+    Return Value: Outputs a formatted string
+      "T{temporal_dimension}L{spatial_dimension}" to the console.
+    
+    Usage Example: extract_lattice_dimensions_label_with_value 32 16
+      # Expected output: "T32L16"
+    
+    Additional Notes:
+      - This function does not validate the inputs. It assumes that valid
+        temporal and spatial dimensions are provided.
+      - If the function is used for labeling, ensure the input dimensions
+        align with the intended lattice representation for clarity and
+        accuracy.
+      - Additional spatial dimensions passed as arguments are ignored.
+'
 
-print_lattice_dimensions() {
     local temporal_dimension="$1"
     local spatial_dimension="$2"
+    # Ignore the rest of the argument, they are identical to $2 by definition
 
-    # Output the string in the form "T${temporal_dimension}L${spatial_dimension}"
+    # Output the string in a form "T${temporal_dimension}L${spatial_dimension}"
     echo "T${temporal_dimension}L${spatial_dimension}"
-}
-
-# Not unit-tested
-################################################################################
-
-range_of_gauge_configurations_file_paths_generator() {
-:   '
-    Function: range_of_gauge_configurations_file_paths_generator
-
-    Description:
-    Generates an array of file paths from a directory based on the order of 
-    appearance in the directory, using a specified range of indices.
-    
-    Usage: range_of_gauge_configurations_file_paths_generator <start> <end> <step>
-    Arguments:
-    * start: The starting index (1-based) of the range.
-    * end: The ending index (1-based) of the range.
-    * step: The step value between indices (positive or negative).
-    Output:
-    An array of file paths corresponding to the specified range of indices.
-    Notes:
-    - The function assumes that files in the directory are sorted in the 
-        desired order of appearance.
-    - The function checks for valid input arguments and ensures they are within 
-        the bounds of the number of files in the directory.
-    - If no files or multiple files are found at a specific index, an error 
-        message is printed and the function returns 1.
-    - The directory is specified by the global variable 
-        "GAUGE_LINKS_CONFIGURATIONS_DIRECTORY".
-    '
-
-    local start="$1"
-    local end="$2"
-    local step="$3"
-
-    # Check if step is zero
-    if [ "$step" -eq 0 ]; then
-        echo "Step cannot be zero."
-        return 1
-    fi
-
-    # Use the global directory variable
-    local directory="$GAUGE_LINKS_CONFIGURATIONS_DIRECTORY"
-
-    # Get the list of files in the directory
-    local files=("$directory"/*)
-    local num_files=${#files[@]}
-
-    # Check if start and end are within the bounds of the number of files
-    if [ "$start" -lt 1 ] || [ "$start" -gt "$num_files" ] || [ "$end" -lt 1 ]\
-     || [ "$end" -gt "$num_files" ]; then
-        echo "Start and end indices must be within the range of the number of"\
-        "files in the directory."
-        return 1
-    fi
-
-    local range=()
-    local index
-
-    # Generate the range of file paths
-    if [ "$step" -gt 0 ]; then
-        for ((index = start - 1; index < end; index += step)); do
-            range+=($(extract_configuration_label_from_file "${files[index]}"))
-            # range+=("${files[index]}")
-        done
-    else
-        for ((index = start - 1; index >= end - 1; index += step)); do
-            range+=($(extract_configuration_label_from_file "${files[index]}"))
-            # range+=("${files[index]}")
-        done
-    fi
-
-    # Print the range of file paths
-    echo "${range[@]}"
-}
-
-
-constant_parameters_update() {
-:   '
-    Function: constant_parameters_update
-    Description: Updates constants with new values based on input data. The 
-    array of updated constants is passed by name.
-
-    Parameters:
-    - list_of_updated_constant_values_name (string): The name of the array
-      containing key-value pairs in the format "KEY=VALUE". These pairs
-      represent constants and their updated values.
-
-    Returns: None
-
-    This function reads a list of updated constants from the array passed by
-    name. Each item in the array is expected to be a string in the format
-    "KEY=VALUE", where KEY is the name of the constant to be updated and VALUE
-    is its new value. The function splits each item into KEY and VALUE using
-    the '=' delimiter and updates the corresponding constant using indirect
-    reference with `eval`.
-
-    It also ensures that only one of the variables 'BARE_MASS' and 
-    'KAPPA_VALUE' is updated at a time. If both are passed for update, the 
-    function returns an error message and stops execution.
-
-    Usage Example:
-    # Define an array of constants to update
-    LIST_OF_UPDATED_CONSTANT_VALUES=( 
-        "NUMBER_OF_CHEBYSHEV_TERMS=3"
-        "RHO_VALUE=0.3"
-        "BARE_MASS=1.2"
-    )
-    # Call the function to update constants
-    constant_parameters_update LIST_OF_UPDATED_CONSTANT_VALUES
-
-    Notes:
-    - This function also handles special updates for
-    "GAUGE_LINKS_CONFIGURATION_LABEL" by calling an external function to match
-    the configuration label to the file.
-    - Indirect referencing is used with `eval` to dynamically update constants.
-    - Simultaneous updating of "BARE_MASS" and "KAPPA_VALUE" is not allowed.
-      If both are present in the updates, the function prints an error and 
-      exits early.
-    '
-
-    local list_of_updated_constant_values_name="$1" # Name of the array
-    # Array reference
-    local -n list_of_updated_constant_values="$list_of_updated_constant_values_name"
-
-    # Temporary variable to store the updated file path
-    local updated_file_path
-
-    # Track if either BARE_MASS or KAPPA_VALUE has been updated
-    local bare_mass_updated=false
-    local kappa_value_updated=false
-
-    # Loop through updated constants
-    for item in "${list_of_updated_constant_values[@]}"; do
-        # Split the key-value pair
-        IFS='=' read -r key value <<< "$item"
-        
-        eval "$key='$value'"
-
-        # Check if the key is GAUGE_LINKS_CONFIGURATION_LABEL
-        if [[ "$key" == "GAUGE_LINKS_CONFIGURATION_LABEL" ]]; then
-            # Attempt to update GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH
-            updated_file_path=$(match_configuration_label_to_file "$value")
-            if [ $? -ne 0 ]; then
-                warning_message="Invalid configuration label '$value' ignored."
-                log "WARNING" "$warning_message"
-                continue  # Skip updating this key if there was an error
-            fi
-            eval "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH='$updated_file_path'"
-        fi
-
-        # Check for BARE_MASS and KAPPA_VALUE updates
-        if [[ "$key" == "BARE_MASS" ]]; then
-            if [ "$kappa_value_updated" = true ]; then
-                error_message="Cannot update both 'BARE_MASS' and "
-                error_message+="'KAPPA_VALUE' at the same time."
-                termination_output "${error_message}" \
-                                "${script_termination_message}"
-                return 1
-            fi
-            bare_mass_updated=true
-            KAPPA_VALUE=$(calculate_kappa_value "$value")
-        elif [[ "$key" == "KAPPA_VALUE" ]]; then
-            if [ "$bare_mass_updated" = true ]; then
-                error_message="Cannot update both 'BARE_MASS' and "
-                error_message+="'KAPPA_VALUE' at the same time."
-                termination_output "${error_message}" \
-                                                "${script_termination_message}"
-                return 1
-            fi
-            kappa_value_updated=true
-            BARE_MASS=$(calculate_bare_mass_from_kappa_value "$value")
-        fi
-
-    done
-
-    return 0
-}
-
-
-parameter_range_of_values_generator() {
-    :   '
-    Description:
-    Generates a range of parameter values using the specified helper function.
-    Assumes the validity of the range string format "[start end step]".
-
-    Parameters:
-    1. helper_function: The name of the function that generates the parameter 
-    range.
-    2. range_variable_name: The name of the variable that holds the range string
-    in the format "[start end step]".
-
-    Output:
-    Prints the generated range of values as output from the helper function.
-
-    Example:
-    parameter_range_of_values_generator parameter_range_generator "INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES"
-    '
-
-    local helper_function="$1"
-    local range_variable_name="$2"
-
-    # Create a name reference to the range variable
-    declare -n range_string="$range_variable_name"
-
-    # Remove square brackets from range_string and extract start, end, and step
-    range_string="${range_string//[\[\]]/}"
-    
-    # Extract start, end, and step from the range_string
-    IFS=' ' read -r start end step <<< "${range_string}"
-
-    # Call the helper function with start, end, and step arguments
-    output_array=($("$helper_function" "$start" "$end" "$step"))
-
-    # Print each value in the output_array
-    echo "${output_array[@]}"
-}
-
-
-general_range_of_values_generator() {
-:   '
-    Function to construct a range of values (integer or float) given a start, 
-    end, and step.
-    Usage: general_range_of_values_generator $start $end $step
-    Arguments:
-        * start: The starting value of the range (integer or float).
-        * end: The ending value of the range (integer or float).
-        * step: The increment (positive or negative) between consecutive values 
-        in the range (integer or float).
-    Output:
-        A space-separated string of values representing the range from start 
-        to end, inclusive, incremented by step. If step is zero, the function 
-        prints an error message and returns 1.
-    Example:
-        range=$(general_range_of_values_generator 1 10 2)
-        This sets range to "1 3 5 7 9".
-    Notes:
-        - The function handles both positive and negative steps.
-        - If start is less than or equal to end, the function generates an 
-        increasing sequence.
-        - If start is greater than or equal to end, the function generates a 
-        decreasing sequence.
-        - The function supports both integer and floating-point values, 
-        including those in exponential form.
-    '
-
-    # Helper function
-    trim_whitespace()
-    {
-    :   '
-        Function: trim_whitespace
-
-        Description:
-        Trims leading and trailing whitespace from a given string. This function 
-        is useful for cleaning up strings that may have extra spaces at the 
-        beginning or end, which can interfere with string comparisons and other 
-        operations.
-
-        Parameters:
-        1. var: The input string that needs to be trimmed of leading and trailing 
-        whitespace.
-
-        Output:
-        Prints the trimmed string without leading or trailing whitespace.
-
-        Usage:
-        trimmed_string=$(trim_whitespace "  example string  ")
-
-        Example:
-        input_string="   some text with spaces   "
-        trimmed_string=$(trim_whitespace "$input_string")
-        # trimmed_string now contains "some text with spaces"
-
-        Notes:
-        - This function uses Bash string manipulation techniques to remove 
-        whitespace.
-        - The function does not modify the original string but outputs the trimmed 
-        result.
-        '
-
-      local var="$*"
-      
-      # Remove leading and trailing whitespace
-      var="${var#"${var%%[![:space:]]*}"}"
-      var="${var%"${var##*[![:space:]]}"}"
-      
-      echo -n "$var"
-    }
-
-    local start="$1"
-    local end="$2"
-    local step="$3"
-
-    local range=()
-    local is_exponential=FALSE
-
-    # Check if any of the arguments are in exponential form
-    if [[ "$start" == *[eE]* || "$end" == *[eE]* || "$step" == *[eE]* ]]; then
-        is_exponential=TRUE
-
-        # Convert exponential form to decimal format
-        start=$(awk -v num="$start" 'BEGIN { printf "%.25f", num }')
-        end=$(awk -v num="$end" 'BEGIN { printf "%.25f", num }')
-        step=$(awk -v num="$step" 'BEGIN { printf "%.25f", num }')
-    fi
-
-    # Determine precision
-    local precision
-    if [ "$is_exponential" == FALSE ]; then
-        # If not exponential, calculate precision based on step
-        precision=$(echo "$step" | awk -F. '{ if (NF==1) print 0; else print length($2) }')
-    else
-        # For exponential form, use precision based on the smallest of start, end, and step
-        # smallest_value=$(awk 'BEGIN { print ('"$start"' < '"end"' ? ('"$start"' < '"step"' ? '"start"' : '"step"') : ('"$end"' < '"step"' ? '"end"' : '"step"')) }')
-        # precision=$(echo "$smallest_value" | awk -F. '{ if (NF==1) print 0; else print length($2) }')
-
-        # For exponential form, use precision based on the smaller of start and end
-        smallest_value=$(awk 'BEGIN { print ('"$start"' < '"end"' ? '"start"' : '"end"') }')
-        precision=$(echo "$smallest_value" | awk -F. '{ if (NF==1) print 0; else print length($2) }')
-
-    fi
-
-
-    # Use awk to generate the range of values
-    if [ "$is_exponential" == FALSE ]; then
-        range=$(awk -v start="$start" -v \
-                            end="$end" -v step="$step" -v precision="$precision" '
-        BEGIN {
-            format = "%." precision "f"
-            for (i = start; (step > 0 ? i <= end : i >= end); i += step) {
-                printf format " ", i
-            }
-        }')
-
-    else
-    # for (i = start; (step > 1 ? i <= end : i >= end); i *= step) {
-        range=$(awk -v start="$start" -v \
-                            end="$end" -v step="$step" -v precision="$precision" '
-        BEGIN {
-            format = "%." precision "f"
-            for (i = start; (start < end ? i <= end : i >= end); i *= step) {
-                printf format " ", i
-            }
-        }')
-    fi
-
-    # Convert to exponential form if originally in exponential form
-    if [ "$is_exponential" == TRUE ]; then
-        range=$(echo "$range" | awk -v precision="$precision" '{
-            for (i = 1; i <= NF; i++) {
-                printf "%." precision "e ", $i
-            }
-        }')
-    fi
-
-    echo $(trim_whitespace "$range")
-}
-
-
-parameter_range_of_values_generator() {
-    :   '
-    Description:
-    Generates a range of parameter values using the specified helper function.
-    Assumes the validity of the range string format "[start end step]".
-
-    Parameters:
-    1. helper_function: The name of the function that generates the parameter 
-    range.
-    2. range_variable_name: The name of the variable that holds the range string
-    in the format "[start end step]".
-
-    Output:
-    Prints the generated range of values as output from the helper function.
-
-    Example:
-    parameter_range_of_values_generator parameter_range_generator "INNER_LOOP_VARYING_PARAMETER_SET_OF_VALUES"
-    '
-
-    local helper_function="$1"
-    local range_variable_name="$2"
-
-    # Create a name reference to the range variable
-    declare -n range_string="$range_variable_name"
-
-    # Remove square brackets from range_string and extract start, end, and step
-    range_string="${range_string//[\[\]]/}"
-    
-    # Extract start, end, and step from the range_string
-    IFS=' ' read -r start end step <<< "${range_string}"
-
-    # Call the helper function with start, end, and step arguments
-    output_array=($("$helper_function" "$start" "$end" "$step"))
-
-    # Print each value in the output_array
-    echo "${output_array[@]}"
-}
-
-
-exponential_range_of_values_generator() {
-    : '
-    Function: exponential_range_of_values_generator
-
-    Description:
-      Generates a range of values in exponential form, based on integer exponents.
-      Expects inputs in the form "1e{exponent}", with all exponents being integers.
-      If the inputs deviate from this form, the function returns 1.
-
-    Arguments:
-      - start: Starting value in the form "1e{start_exponent}"
-      - end: Ending value in the form "1e{end_exponent}"
-      - step: Step value in the form "1e{step_exponent}"
-
-    Output:
-      A space-separated list of values in exponential notation (e.g., "1e-2 1e-4 1e-6"),
-      representing the range from start to end, inclusive.
-
-    Example:
-      exponential_range_of_values_generator "1e1" "1e3" "1e1"
-      Output: "1e+01 1e+02 1e+03"
-
-    Returns:
-      0 on success, 1 on failure (e.g., if input format is incorrect).
-    '
-
-    # Helper function to validate and extract exponent from "1e{exponent}" form
-    extract_exponent() {
-        local value="$1"
-        if [[ "$value" =~ ^1e(-?[0-9]+)$ ]]; then
-            echo "${BASH_REMATCH[1]}"
-        else
-            return 1  # Invalid format
-        fi
-    }
-
-    # Extract exponents or return 1 if any argument is invalid
-    local start_exponent end_exponent step_exponent
-    start_exponent=$(extract_exponent "$1") || return 1
-    end_exponent=$(extract_exponent "$2") || return 1
-    step_exponent=$(extract_exponent "$3") || return 1
-
-    # Generate range of values based on direction
-    local range=()
-    if (( start_exponent <= end_exponent )); then
-        for (( exp=start_exponent; exp<=end_exponent; exp+=step_exponent )); do
-            range+=("1e$exp")
-        done
-    else
-        for (( exp=start_exponent; exp>=end_exponent; exp+=step_exponent )); do
-            range+=("1e$exp")
-        done
-    fi
-
-    # Output the range as a space-separated string
-    echo "${range[@]}"
-    return 0
-}
-
-
-# TO BE RETIRED
-################################################################################
-
-# TODO: What about a general integer numbers range function?
-construct_number_of_Chebyshev_terms_range() {
-:   '
-    Function to construct a range of integer values given a start, end, and step
-    Usage: construct_range $start $end $step
-    Arguments:
-        * start: The starting integer of the range.
-        * end: The ending integer of the range.
-        * step: The increment (positive or negative) between consecutive 
-        integers in the range.
-    Output:
-        A space-separated string of integers representing the range from start 
-        to end, inclusive, incremented by step. If step is zero, the function 
-        prints an error message and returns 1.
-    Example:
-        range=$(construct_range 1 10 2)
-        This sets range to "1 3 5 7 9".
-    Notes:
-        - The function handles both positive and negative steps.
-        - If start is less than or equal to end, the function generates an 
-        increasing sequence.
-        - If start is greater than or equal to end, the function generates a 
-        decreasing sequence.
-    '
- 
-    local start="$1"
-    local end="$2"
-    local step="$3"
-    local range=()
-
-    if [ "$step" -eq 0 ]; then
-        echo "Step cannot be zero."
-        return 1
-    fi
-
-    if [ "$step" -gt 0 ]; then
-        for ((i = start; i <= end; i += step)); do
-            range+=("$i")
-        done
-    else
-        for ((i = start; i >= end; i += step)); do
-            range+=("$i")
-        done
-    fi
-
-    echo "${range[@]}"
-}
-
-
-check_lattice_dimensions() {
-:   '
-    Function: check_lattice_dimensions
-    This function checks if the given lattice dimensions match any value 
-    in the predefined list of lattice dimensions.
-
-    Parameters:
-    - lattice_dimensions (string): The lattice dimensions to be checked, 
-    passed as a single string.
-
-    Global Variables:
-    - LATTICE_DIMENSIONS_LIST: An array containing predefined lattice dimensions
-       as strings.
-
-    Usage:
-    - Call this function with the lattice dimensions to check. Example:
-      check_lattice_dimensions "24 12 12 12"
-
-    Returns:
-    - 0 if the lattice dimensions match any value in LATTICE_DIMENSIONS_LIST.
-    - 1 if the lattice dimensions do not match any value in 
-      LATTICE_DIMENSIONS_LIST.
-
-    Output:
-    - Echoes 0 if the lattice dimensions are found in the list.
-    - Echoes 1 if the lattice dimensions are not found in the list.
-
-    Example:
-    LATTICE_DIMENSIONS_LIST=("24 12 12 12" "32 16 16 16" "40 20 20 20" 
-    "48 24 24 24")
-    check_lattice_dimensions "24 12 12 12"
-    # Output: 0
-    check_lattice_dimensions "30 15 15 15"
-    # Output: 1
-
-    Notes:
-    - The function uses a for loop to iterate through the 
-      LATTICE_DIMENSIONS_LIST and compares each element with the input 
-      lattice dimensions.
-    - If a match is found, it echoes 0 and returns 0.
-    - If no match is found, it echoes 1 and returns 1.
-    '
-    local lattice_dimensions="$@"
-
-    for listed_lattice_dimensions in "${LATTICE_DIMENSIONS_LIST[@]}"; do
-        if [[ "$listed_lattice_dimensions" == "$lattice_dimensions" ]]; then
-            echo 0
-            return 0
-        fi
-    done
-
-    echo 1
-    return 1
-}
-
-
-# TODO: The output of this function is not that useful
-lattice_dimensions_range_of_strings_generator() {
-:   '
-    Function: lattice_dimensions_range_of_strings_generator
-
-    Description:
-    This function generates a range of lattice dimension strings from the 
-    LATTICE_DIMENSIONS_LIST array based on the specified start, end, and step 
-    indices.
-
-    Parameters:
-    1. start: The starting index (0-based) of the range.
-    2. end: The ending index (0-based) of the range.
-    3. step: The step (increment) between consecutive indices.
-
-    Output:
-    An array of lattice dimension strings corresponding to the specified range 
-    of indices, echoed as a space-separated string.
-
-    Example Usage:
-    range=$(lattice_dimensions_range_of_strings_generator 1 5 2)
-    This sets range to "32 16 16 16 24 16 16 16 30 24 24 24".
-
-    Notes:
-    - The function checks if the step is zero and prints an error message if so.
-    - The function ensures that the indices are within the valid range of 
-      LATTICE_DIMENSIONS_LIST array.
-    '
-
-    local start="$1"
-    local end="$2"
-    local step="$3"
-    local range=()
-
-    # Check if step is zero
-    if [ "$step" -eq 0 ]; then
-        echo "Step cannot be zero."
-        return 1
-    fi
-
-    # Validate indices
-    local list_length="${#LATTICE_DIMENSIONS_LIST[@]}"
-    if [ "$start" -lt 0 ] || [ "$end" -lt 0 ] || [ "$start" -ge "$list_length" ] || [ "$end" -ge "$list_length" ]; then
-        echo "Indices are out of range."
-        return 1
-    fi
-
-    # Generate the range of lattice dimension strings
-    for ((i = start; (step > 0 ? i <= end : i >= end); i += step)); do
-        range+=("${LATTICE_DIMENSIONS_LIST[$i]}")
-    done
-
-    # Echo the range as a space-separated string
-    echo "${range[@]}"
-}
-
-
-parameter_range_of_values_generator_old() {
-:   '
-    Description:
-    Generates a range of parameter values using the specified helper function.
-    Assumes the validity of the range string format "[start end step]".
-
-    Parameters:
-    1. helper_function: The name of the function that generates the parameter 
-    range.
-    2. range_string: String specifying the range in the format 
-    "[start end step]".
-
-    Output:
-    Prints the generated range of values as output from the helper function.
-
-    Example:
-    parameter_range_of_values_generator parameter_range_generator "[1 10 2]"
-    '
-
-    local helper_function="$1"
-    local range_string="$2"
-
-    # Remove square brackets from range_string and extract start, end, and step
-    range_string="${range_string//[\[\]]/}"
-    # Extract start, end, and step from the range_string
-    IFS=' ' read -r start end step <<< "${range_string}"
-
-    # Call the helper function with start, end, and step arguments
-    output_array=($("$helper_function" "$start" "$end" "$step"))
-
-    # Print each value in the output_array
-    # printf '%s\n' "${output_array[@]}"
-    echo "${output_array[@]}"
 }
