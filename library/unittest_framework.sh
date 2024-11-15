@@ -215,8 +215,10 @@ assert_multiple_function_outputs() {
         local expected_output="${expected_output_array_reference[$index]}"
 
         # Call "assert_function_output" for each input/output pair
+        # Suppress any error or warning messages from the tested function
         assert_function_output "$function_name" "$input" "$expected_output" \
                                                               > /dev/null 2>&1
+        
         # Check if the test passed or failed
         if [ $? -ne 0 ]; then
             error_message="ERROR: Test failed for input: '$input'. Actual "

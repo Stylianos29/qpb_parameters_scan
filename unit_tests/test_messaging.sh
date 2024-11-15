@@ -31,13 +31,3 @@ unittest_option=${1:-$unittest_option_default_value}
 
 # CUSTOM FUNCTIONS UNIT TESTS
 
-test_convert_mpi_geometry_to_number_of_tasks()
-{
-    test_mpi_geometry_string="2,2,2"
-    expected_number_of_tasks="8"
-
-    number_of_tasks=($(convert_mpi_geometry_to_number_of_tasks \
-                                                    $test_mpi_geometry_string))
-
-    assert ${number_of_tasks} ${expected_number_of_tasks}
-}

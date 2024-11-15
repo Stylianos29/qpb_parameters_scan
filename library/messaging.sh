@@ -69,9 +69,9 @@ log()
         echo -e "$wrapped_message" >> "$LOG_FILE_PATH"
     else
         # Otherwise exit with error
-        echo "No current script's log file path has been provided."
-        echo "Exiting..."
-        exit 1
+        echo "No current script's log file path has been provided." >&2
+        echo "Exiting..." >&2
+        return 1
     fi
 }
 
