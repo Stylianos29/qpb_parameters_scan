@@ -414,7 +414,8 @@ for index in "${LIST_OF_NON_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED[@]}"; do
         output_filename+="${parameter_value}_"
 
     else
-        output_filename+=$(print_lattice_dimensions $parameter_value)
+        output_filename+=$(\
+                extract_lattice_dimensions_label_with_value $parameter_value)
     fi
 done
 
@@ -467,7 +468,18 @@ for element in "${constant_parameters_names_array[@]}"; do
 done
 constant_parameters_names_array=("${temp_array[@]}")
 
-# PARTIALLY FILLY UP TEMPLATE PARAMETERS FILE
+#
+if [ $OVERLAP_OPERATOR_METHOD == "Bare" ]; then
+    if [[ " ${varying_iterable_parameters_names_array[*]} " == *" BARE_MASS "* ]]; then
+        # Exclude "KAPPA_VALUE" from "varying_iterable_parameters_names_array"
+        varying_iterable_parameters_names_array=("${varying_iterable_parameters_names_array[@]/KAPPA_VALUE}")
+    elif [[ " ${varying_iterable_parameters_names_array[*]} " == *" KAPPA_VALUE "* ]]; then
+        # Exclude "BARE_MASS" from "varying_iterable_parameters_names_array"
+        varying_iterable_parameters_names_array=("${varying_iterable_parameters_names_array[@]/BARE_MASS}")
+    fi
+fi
+
+# PARTIALLY FILL UP TEMPLATE PARAMETERS FILE
 
 # Fill up the copied empty template with the values of the constant parameters
 for parameter in "${constant_parameters_names_array[@]}"; do
@@ -513,9 +525,10 @@ log "INFO" "Parameters files template was partially filled."
 
 # CHECK SBATCH OPTIONS
 
+# TODO: Add an exclusion option of SLURM option
 check_mpi_geometry $MPI_GEOMETRY || { echo "Exiting..."; exit 1; }
 # The number of tasks is calculated automatically from the given MPI geometry
-NUMBER_OF_TASKS=($(convert_mpi_geometry_to_number_of_tasks $MPI_GEOMETRY))
+NUMBER_OF_TASKS=($(calculate_number_of_tasks_from_mpi_geometry $MPI_GEOMETRY))
 # is_integer $NUMBER_OF_NODES || {
 #         error_message="Invalid 'NUMBER_OF_NODES' input value.";
 #         termination_output "${error_message}";
@@ -618,6 +631,27 @@ for overall_outer_loop_varying_parameter_value in \
                     replace_string_in_file "$filled_parameters_file_full_path" \
                                 "_${parameter_name}_" "$parameter_value" \
                                             || { echo "Exiting..."; exit 1; }
+
+                    # Additional replacement only for the Bare operator case
+                    if [ $OVERLAP_OPERATOR_METHOD == "Bare" ]; then
+                        if [ $parameter_name == "BARE_MASS" ]; then
+                            parameter_name="KAPPA_VALUE"
+                            parameter_value=$(calculate_kappa_value_from_bare_mass $parameter_value)
+
+                            replace_string_in_file "$filled_parameters_file_full_path" \
+                                    "_${parameter_name}_" "$parameter_value" \
+                                                || { echo "Exiting..."; exit 1; }
+
+                        elif [ $parameter_name == "KAPPA_VALUE" ]; then
+                            parameter_name="BARE_MASS"
+                            parameter_value=$(calculate_bare_mass_from_kappa_value $parameter_value)
+
+                            replace_string_in_file "$filled_parameters_file_full_path" \
+                                "_${parameter_name}_" "$parameter_value" \
+                                            || { echo "Exiting..."; exit 1; }
+                        fi
+                    fi
+
                 fi
             done
 
