@@ -468,14 +468,20 @@ for element in "${constant_parameters_names_array[@]}"; do
 done
 constant_parameters_names_array=("${temp_array[@]}")
 
-#
+# NOTE: In the case of the "Bare" overlap operator method, if either "BARE_MASS"
+# or "KAPPA_VALUE" is selected as a varying parameter, the other must be excluded
+# from the "constant_parameters_names_array" to maintain consistency.
 if [ $OVERLAP_OPERATOR_METHOD == "Bare" ]; then
     if [[ " ${varying_iterable_parameters_names_array[*]} " == *" BARE_MASS "* ]]; then
-        # Exclude "KAPPA_VALUE" from "varying_iterable_parameters_names_array"
-        varying_iterable_parameters_names_array=("${varying_iterable_parameters_names_array[@]/KAPPA_VALUE}")
+    echo "I'm in!"
+    echo "${constant_parameters_names_array[@]}"
+        # Exclude "KAPPA_VALUE" from "constant_parameters_names_array"
+        constant_parameters_names_array=("${constant_parameters_names_array[@]/KAPPA_VALUE}")
+    echo "${constant_parameters_names_array[@]}"
+
     elif [[ " ${varying_iterable_parameters_names_array[*]} " == *" KAPPA_VALUE "* ]]; then
         # Exclude "BARE_MASS" from "varying_iterable_parameters_names_array"
-        varying_iterable_parameters_names_array=("${varying_iterable_parameters_names_array[@]/BARE_MASS}")
+        constant_parameters_names_array=("${constant_parameters_names_array[@]/BARE_MASS}")
     fi
 fi
 
