@@ -44,9 +44,9 @@ NUMBER_OF_NODES=1
 MPI_GEOMETRY="2,2,2"
 WALLTIME="01:00:00"
 
-# Optional options (superseding those inside "run.sh")
+# Optional options that override those specified in "run.sh" (if defined there).
 PARTITION_NAME=
 NTASKS_PER_NODE=
 
-# Additional options, for example: --reservation=short -A slnpp
+# Additional options, for example: "--reservation=short -A slnpp"
 ADDITIONAL_OPTIONS=
