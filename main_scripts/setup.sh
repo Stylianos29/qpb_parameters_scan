@@ -36,6 +36,7 @@
 #
 ###############################################################################
 
+# TODO: add the option of copying the appropriate file for meson main progs
 
 # CONSTRUCT LOG FILE
 
