@@ -33,7 +33,8 @@
 ################################################################################
 
 #SBATCH --job-name=data_files_generation
-#SBATCH --nodes=1 SBATCH --time=01:00:00
+#SBATCH --nodes=1
+#SBATCH --time=01:00:00
 #SBATCH --error=data_files_generation.err
 #SBATCH --output=data_files_generation.txt
 #SBATCH --ntasks-per-node=16
