@@ -128,10 +128,10 @@ for invert_solution_file_path in "$INVERT_SOLUTIONS_DIRECTORY/"*; do
     invert_solution_filename=$(basename "$invert_solution_file_path")
 
     parameters_file_path="$PARAMETERS_FILES_DIRECTORY"
-    parameters_file_path+="/params_${invert_solution_filename}.ini"
+    parameters_file_path+="/params_${invert_solution_filename%.dat}.ini"
 
     output_data_file_path="$MESONS_DATA_FILES_DIRECTORY"
-    output_data_file_path+="/${invert_solution_filename}.dat"
+    output_data_file_path+="/${invert_solution_filename}"
     
     # Construct specific parameters files by passing the invert binary solution
     # file path and the output data file path
