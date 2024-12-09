@@ -384,6 +384,7 @@ compare_no_common_elements VARYING_PARAMETERS_INDICES_LIST \
 log "INFO" "Passed elements to "\
 "'LIST_OF_CONSTANT_ITERABLE_PARAMETERS_INDICES_TO_BE_PRINTED' array are valid."
 
+# TODO: Check if requested configuration files exist
 # Check if "GAUGE_LINKS_CONFIGURATION_LABEL" parameter is null
 if [ "$GAUGE_LINKS_CONFIGURATION_LABEL" == "0000000" ]; then
     # If null then set "GAUGE_LINKS_CONFIGURATION_FILE_FULL_PATH" to full path

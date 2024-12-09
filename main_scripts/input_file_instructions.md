@@ -1,3 +1,4 @@
+<!-- TODO: Change this file's name for easier user on the terminal uf "input.txt" -->
 ### Introduction: Inputs and Outputs of the Main Program Executable
 The file `input.txt` contains all essential information required for the
 successful execution of the `scan.sh` script:
