@@ -54,6 +54,7 @@ partition=$(
 if [[ -n $partition ]]; then
     echo " Partition: $partition"
 fi
+echo " Number of nodes: $number_of_tasks"
 
 # Run the MPI-based program with the provided arguments
 mpirun -n ${number_of_tasks} --map-by ppr:8:socket --bind-to core \
