@@ -178,8 +178,9 @@ log "INFO" "All files will be copied inside the "\
 # CONSTRUCT SETUP FILES LIST
 
 # Default list of setup files to be copied
-SETUP_FILES_LIST=("input.txt" "input_file_instructions.md" "scan.sh"\
-                                                "usage.sh" "update.sh" "run.sh")
+# Default list of setup files to be copied
+SETUP_FILES_LIST=("input.txt" "README.md" "scan.sh"\
+                                            "usage.sh" "update.sh" "run.sh")
 
 # NOTE: An empty parameters file, determined by the destination directory
 # path, must also be included in the list of setup files to be copied.
