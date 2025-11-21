@@ -278,9 +278,9 @@ iterable_parameters_names_array="${ITERABLE_PARAMETERS_NAMES_DICTIONARY[\
 "$overlap_operator_method_label"]}"
 write_list_of_parameters_to_file $iterable_parameters_names_array \
 "List of iterable parameters" "$copied_setup_file_full_path" || exit 1
-# Remove the line "BINARY_SOLUTION_FILES_DIRECTORY=" if not in an invert program
+# Remove the line "BINARY_INVERT_SOLUTION_FILES_DIRECTORY=" if not in an invert program
 if [[ ! "$overlap_operator_method_label" == *"invert"* ]]; then
-    sed -i '/^BINARY_SOLUTION_FILES_DIRECTORY=/d' \
+    sed -i '/^BINARY_INVERT_SOLUTION_FILES_DIRECTORY=/d' \
         "$copied_setup_file_full_path" || { 
     error_message="Could not modify copied '$COPIED_SETUP_FILE_NAME' file.";
     termination_output "$error_message";
