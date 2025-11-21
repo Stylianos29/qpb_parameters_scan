@@ -41,8 +41,8 @@ extract_overlap_operator_method() {
 :   '
     Description: This function extracts the overlap operator method from a 
     given file or directory path. It checks for specific substrings related to 
-    the operator method ("Chebyshev" or "KL") and echoes the corresponding 
-    method. If no match is found, it defaults to "Bare."
+    the operator method ("Chebyshev", "Zolotarev", "Neuberger", or "KL") and 
+    echoes the corresponding method. If no match is found, it defaults to "Bare."
 
     Parameters:
     - path (string): The full path that is checked for specific substrings to 
@@ -50,18 +50,25 @@ extract_overlap_operator_method() {
 
     Returns:
     - "Chebyshev" if the path contains "Chebyshev", "chebyshev", or "CHEBYSHEV".
+    - "Zolotarev" if the path contains "Zolotarev", "zolotarev", or "ZOLOTAREV".
+    - "Neuberger" if the path contains "Neuberger", "neuberger", or "NEUBERGER".
     - "KL" if the path contains "KL" or "kl".
     - "Bare" if none of the above substrings are found.
 
     Usage Example:
-        method=$(extract_overlap_operator_method "/path/to/file_with_Chebyshev")
+        method=$(extract_overlap_operator_method "/path/to/overlap-Chebyshev")
         echo "Operator method: $method"  # Outputs: Operator method: Chebyshev
+        
+        method=$(extract_overlap_operator_method "/path/to/overlap-Neuberger")
+        echo "Operator method: $method"  # Outputs: Operator method: Neuberger
 
     Notes:
     - The function performs case-insensitive substring matching using regular 
-      expressions to check for "Chebyshev" or "KL" in the provided path.
-    - If neither "Chebyshev" nor "KL" is found, it assumes the operator method 
-      is "Bare."
+      expressions to check for method names in the provided path.
+    - If none of the recognized methods are found, it assumes the operator 
+      method is "Bare."
+    - The order of checks matters: Chebyshev, Zolotarev, Neuberger are checked 
+      before KL to avoid false matches in complex paths.
     '
     
     local path="$1"  # Input path
@@ -82,11 +89,19 @@ extract_overlap_operator_method() {
     if [[ "$relative_path" =~ [Cc][Hh][Ee][Bb][Yy][Ss][Hh][Ee][Vv] ]]; then
         echo "Chebyshev"
 
-    # 2. Check for "KL" or "kl"
+    # 2. Check for "Zolotarev", "zolotarev", or "ZOLOTAREV"
+    elif [[ "$relative_path" =~ [Zz][Oo][Ll][Oo][Tt][Aa][Rr][Ee][Vv] ]]; then
+        echo "Zolotarev"
+
+    # 3. Check for "Neuberger", "neuberger", or "NEUBERGER"
+    elif [[ "$relative_path" =~ [Nn][Ee][Uu][Bb][Ee][Rr][Gg][Ee][Rr] ]]; then
+        echo "Neuberger"
+
+    # 4. Check for "KL" or "kl"
     elif [[ "$relative_path" =~ [Kk][Ll] ]]; then
         echo "KL"
 
-    # 3. Default case
+    # 5. Default case
     else
         echo "Bare"
     fi

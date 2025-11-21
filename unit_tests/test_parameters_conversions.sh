@@ -37,6 +37,12 @@ test_extract_overlap_operator_method() {
             "/overlap-Chebyshev/scan.sh" \
             "/overlap-chebyshev/scan.sh" \
             "/overlap-CHEBYSHEV/scan.sh" \
+            "/overlap-Zolotarev/scan.sh" \
+            "/overlap-zolotarev/scan.sh" \
+            "/overlap-ZOLOTAREV/scan.sh" \
+            "/overlap-Neuberger/scan.sh" \
+            "/overlap-neuberger/scan.sh" \
+            "/overlap-NEUBERGER/scan.sh" \
             "/overlap-KL/scan.sh" \
             "/overlap-kl/scan.sh" \
             "/mainprogs/scan.sh" \
@@ -44,18 +50,28 @@ test_extract_overlap_operator_method() {
             "/KL_multishift_scaling/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh" \
             "/KL_multishift_scaling/qpb/mainprogs/overlap-kl/invert/qpb_parameters_scan_files/scan.sh" \
             "/Chebyshev_modified_eigenvalues/qpb/mainprogs/overlap-Chebyshev/invert/qpb_parameters_scan_files/scan.sh" \
+            "/Zolotarev_tests/qpb/mainprogs/overlap-Zolotarev/sign-squared-violation/qpb_parameters_scan_files/scan.sh" \
+            "/Neuberger_scaling/qpb/mainprogs/overlap-Neuberger/invert/qpb_parameters_scan_files/scan.sh" \
             "/Chebyshev_modified_eigenvalues/qpb/mainprogs/invert/qpb_parameters_scan_files/scan.sh"
         )
     expected_output_values_list=(
             "Chebyshev" \
             "Chebyshev" \
             "Chebyshev" \
+            "Zolotarev" \
+            "Zolotarev" \
+            "Zolotarev" \
+            "Neuberger" \
+            "Neuberger" \
+            "Neuberger" \
             "KL" \
             "KL" \
             "Bare" \
             "Bare" \
             "KL" \
             "Chebyshev" \
+            "Zolotarev" \
+            "Neuberger" \
             "Bare"
         )
 
