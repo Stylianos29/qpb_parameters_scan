@@ -18,7 +18,7 @@
 
 # COMMAND-LINE ARGUMENTS CHECKS
 
-# TODO: Add a --usage flag
+# TODO: Add a --usage flag and change -d flag to -r flag for "remove"
 delete_existing_files="False" # Initialize
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
